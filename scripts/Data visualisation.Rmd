@@ -1,0 +1,270 @@
+---
+title: "Data visualisation"
+author: "Xiaochi"
+date: "04/08/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+
+library(tidyverse)
+library(knitr)
+library(maps)
+```
+
+#First Steps
+
+```{r }
+mpg
+```
+
+
+```{r }
+ggplot(data=mpg)+
+  geom_point(mapping = aes(x=displ,y=hwy))
+```
+ggplot() creates a coordinate system that you can add layers to. You complete your graph by adding one or more layers to ggplot().
+
+Each geom function in ggplot2 takes a mapping argument. This defines how variables in your dataset are mapped to visual properties. The mapping argument is always paired with aes(), and the x and y arguments of aes() specify which variables to map to the x and y axes. 
+
+# Aesthetic mappings
+
+```{r }
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy,color=class))
+
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy,size=class))
+
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy,alpha=class))
+
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy,shape=class))
+
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy),color='blue') 
+
+```
+For each aesthetic, you use aes() to associate the name of the aesthetic with a variable to display. 
+
+One common problem when creating ggplot2 graphics is to put the + in the wrong place: it has to come at the end of the line, not the start.
+
+If you’re still stuck, try the help. You can get help about any R function by running ?function_name in the console, or selecting the function name and pressing F1 in RStudio. Don’t worry if the help doesn’t seem that helpful - instead skip down to the examples and look for code that matches what you’re trying to do.
+
+If that doesn’t help, carefully read the error message. Sometimes the answer will be buried there! But when you’re new to R, the answer might be in the error message but you don’t yet know how to understand it. Another great tool is Google: try googling the error message, as it’s likely someone else has had the same problem, and has gotten help online.
+
+# Facets
+
+One way to add additional variables is with aesthetics. Another way, particularly useful for categorical variables, is to split your plot into facets, subplots that each display one subset of the data.
+
+To facet your plot by a single variable, use facet_wrap(). The first argument of facet_wrap() should be a formula, which you create with ~ followed by a variable name (here “formula” is the name of a data structure in R, not a synonym for “equation”). The variable that you pass to facet_wrap() should be discrete.
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_wrap(~class,nrow=2)
+```
+
+To facet your plot on the combination of two variables, add facet_grid() to your plot call. The first argument of facet_grid() is also a formula. This time the formula should contain two variable names separated by a ~.
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_grid(drv~cyl)
+
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_grid(.~class)
+```
+
+#Geometric objects
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))
+
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,y=hwy))
+
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,y=hwy,linetype=drv))
+```
+
+Many geoms, like geom_smooth(), use a single geometric object to display multiple rows of data. For these geoms, you can set the group aesthetic to a categorical variable to draw multiple objects. ggplot2 will draw a separate object for each unique value of the grouping variable.
+
+```{r}
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,y=hwy))
+
+ggplot(data=mpg)+
+  geom_smooth(mapping=aes(x=displ,
+                          y=hwy,
+                          group=drv))
+
+ggplot(data=mpg)+
+  geom_smooth(mapping = aes(x=displ,
+                            y=hwy,
+                            color=drv))
+```
+
+To display multiple geoms in the same plot, add multiple geom functions to ggplot():
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  geom_smooth(mapping=aes(x=displ,y=hwy))
+```
+
+This, however, introduces some duplication in our code. Imagine if you wanted to change the y-axis to display cty instead of hwy. You’d need to change the variable in two places, and you might forget to update one. You can avoid this type of repetition by passing a set of mappings to ggplot(). ggplot2 will treat these mappings as global mappings that apply to each geom in the graph. In other words, this code will produce the same plot as the previous code:
+
+```{r}
+ggplot(data=mpg,mapping = aes(x=displ,y=hwy))+
+  geom_point()+
+  geom_smooth()
+```
+
+If you place mappings in a geom function, ggplot2 will treat them as local mappings for the layer. It will use these mappings to extend or overwrite the global mappings for that layer only. This makes it possible to display different aesthetics in different layers.
+
+```{r}
+ggplot(data=mpg,mapping=aes(x=displ,y=hwy))+
+  geom_point(mapping=aes(color=class))+
+  geom_smooth()
+```
+
+You can use the same idea to specify different data for each layer. Here, our smooth line displays just a subset of the mpg dataset, the subcompact cars. The local data argument in geom_smooth() overrides the global data argument in ggplot() for that layer only.
+
+```{r}
+ggplot(data=mpg,mapping=aes(x=displ,y=hwy))+
+  geom_point(mapping=aes(color=class))+
+  geom_smooth(data=filter(mpg,
+                          class=='subcompact'))
+```
+
+#Statistical transformations
+
+```{r}
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut))
+
+ggplot(data=diamonds)+
+  stat_count(mapping=aes(x=cut))
+```
+
+On the x-axis, the chart displays cut, a variable from diamonds. On the y-axis, it displays count, but count is not a variable in diamonds! Where does count come from? Many graphs, like scatterplots, plot the raw values of your dataset. Other graphs, like bar charts, calculate new values to plot:
+
+* bar charts, histograms, and frequency polygons bin your data and then plot bin counts, the number of points that fall in each bin.
+
+* smoothers fit a model to your data and then plot predictions from the model.
+
+* boxplots compute a robust summary of the distribution and then display a specially formatted box.
+
+```{r}
+demo <- tribble(
+  ~cut,         ~freq,
+  "Fair",       1610,
+  "Good",       4906,
+  "Very Good",  12082,
+  "Premium",    13791,
+  "Ideal",      21551
+)
+
+ggplot(data=demo)+
+  geom_bar(mapping=aes(x=cut,y=freq),
+           stat="identity")
+```
+
+#Position adjustments
+
+```{r}
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut,colour=cut))
+
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut,fill=cut))
+```
+
+Note what happens if you map the fill aesthetic to another variable, like clarity: the bars are automatically stacked. Each colored rectangle represents a combination of cut and clarity.
+
+```{r}
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut,fill=clarity))
+
+ggplot(data=diamonds,
+       mapping=aes(x=cut,fill=clarity))+
+  geom_bar(position='identity',
+           alpha=1/5)
+
+ggplot(data=diamonds,
+       mapping=aes(x=cut,colour=clarity))+
+  geom_bar(fill=NA,position='identity')
+
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut,fill=clarity),
+           position='fill')
+
+ggplot(data=diamonds)+
+  geom_bar(mapping=aes(x=cut,fill=clarity),
+           position='dodge')
+```
+
+
+```{r}
+ggplot(data = mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy),
+             position='jitter')
+```
+
+position = "jitter" adds a small amount of random noise to each point. This spreads the points out because no two points are likely to receive the same amount of random noise.
+
+Adding randomness seems like a strange way to improve your plot, but while it makes your graph less accurate at small scales, it makes your graph more revealing at large scales. Because this is such a useful operation, ggplot2 comes with a shorthand for geom_point(position = "jitter"): geom_jitter().
+
+#Coordinate system
+
+```{r}
+ggplot(data=mpg,mapping=aes(x=class,y=hwy))+
+  geom_boxplot()
+
+ggplot(data=mpg,mapping=aes(x=class,y=hwy))+
+  geom_boxplot()+
+  coord_flip()
+```
+
+```{r}
+nz <- map_data("nz")
+
+ggplot(nz,aes(long,lat,group=group))+
+  geom_polygon(fill="white",colour="black")
+
+ggplot(nz,aes(long,lat,group=group))+
+  geom_polygon(fill="white",colour="black")+
+  coord_quickmap()
+```
+
+```{r}
+bar <- ggplot(data=diamonds)+
+  geom_bar(
+    mapping=aes(x=cut,fill=cut),
+    show.legend = FALSE,
+    width = 1
+  )+
+  theme(aspect.ratio = 1)+
+  labs(x=NULL,y=NULL)
+
+bar
+bar+coord_flip()
+bar+coord_polar()
+```
+
+#Grammer of graphics
+
+The grammar of graphics is based on the insight that you can uniquely describe any plot as a combination of a dataset, a geom, a set of mappings, a stat, a position adjustment, a coordinate system, and a faceting scheme.
+
+
