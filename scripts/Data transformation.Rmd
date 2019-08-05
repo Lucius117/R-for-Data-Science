@@ -1,0 +1,155 @@
+---
+title: "Data transformation"
+author: "Xiaochi"
+date: "05/08/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+
+library(nycflights13)
+library(tidyverse)
+```
+
+#Data
+
+```{r}
+flights
+```
+
+You might notice that this data frame prints a little differently from other data frames you might have used in the past: it only shows the first few rows and all the columns that fit on one screen. (To see the whole dataset, you can run View(flights) which will open the dataset in the RStudio viewer). It prints differently because it’s a tibble. Tibbles are data frames, but slightly tweaked to work better in the tidyverse.
+
+You might also have noticed the row of three (or four) letter abbreviations under the column names. These describe the type of each variable:
+
+* int stands for integers.
+
+* dbl stands for doubles, or real numbers.
+
+* chr stands for character vectors, or strings.
+
+* dttm stands for date-times (a date + a time).
+
+* lgl stands for logical, vectors that contain only TRUE or FALSE.
+
+* fctr stands for factors, which R uses to represent categorical variables with fixed possible values.
+
+* date stands for dates.
+
+In this chapter you are going to learn the five key dplyr functions that allow you to solve the vast majority of your data manipulation challenges:
+
+* Pick observations by their values (filter()).
+
+* Reorder the rows (arrange()).
+
+* Pick variables by their names (select()).
+
+* Create new variables with functions of existing variables (mutate()).
+
+* Collapse many values down to a single summary (summarise()).
+
+These can all be used in conjunction with group_by() which changes the scope of each function from operating on the entire dataset to operating on it group-by-group. These six functions provide the verbs for a language of data manipulation.
+
+All verbs work similarly:
+
+* The first argument is a data frame.
+
+* The subsequent arguments describe what to do with the data frame, using the variable names (without quotes).
+
+* The result is a new data frame.
+
+# Filter rows with filter()
+
+```{r}
+filter(flights,month==1,day==1)
+```
+
+When you run that line of code, dplyr executes the filtering operation and returns a new data frame. dplyr functions never modify their inputs, so if you want to save the result, you’ll need to use the assignment operator, <-:
+
+```{r}
+jan1 <- filter(flights,month==1,day==1)
+```
+
+R either prints out the results, or saves them to a variable. If you want to do both, you can wrap the assignment in parentheses:
+
+```{r}
+(dec25 <- filter(flights,month==12,day==25))
+```
+
+R provides the standard suite: 
+* > 
+* >= 
+* < 
+* <= 
+* != (not equal)
+* and == (equal).
+
+Multiple arguments to filter() are combined with “and”: every expression must be true in order for a row to be included in the output. For other types of combinations, you’ll need to use Boolean operators yourself: 
+* & is “and”
+* | is “or”
+* ! is “not”
+
+```{r}
+filter(flights,month==11|month==12)
+```
+
+x %in% y. This will select every row where x is one of the values in y.
+
+```{r}
+nov_dec <- filter(flights,month %in% c(11,12))
+```
+
+
+```{r}
+filter(flights,!(arr_delay>120|dep_delay>120))
+filter(flights,arr_delay<=120,dep_delay<=120)
+```
+
+NA represents an unknown value so missing values are “contagious”: almost any operation involving an unknown value will also be unknown.The most confusing result is this one:
+
+```{r}
+NA==NA
+```
+
+If you want to determine if a value is missing, use is.na():
+
+```{r}
+is.na(x)
+```
+
+filter() only includes rows where the condition is TRUE; it excludes both FALSE and NA values. If you want to preserve missing values, ask for them explicitly:
+
+```{r}
+df <- tibble(x=c(1,NA,3))
+filter(df,x>1)
+filter(df,is.na(x)|x>1)
+```
+
+#Arrange rows with arrange()
+
+arrange() works similarly to filter() except that instead of selecting rows, it changes their order. It takes a data frame and a set of column names (or more complicated expressions) to order by. If you provide more than one column name, each additional column will be used to break ties in the values of preceding columns:
+
+```{r}
+flights
+arrange(flights,year,month,day)
+```
+
+Use desc() to re-order by a column in descending order:
+
+```{r}
+arrange(flights, desc(dep_delay))
+```
+
+```{r}
+df <- tibble(x=c(5,2,NA))
+arrange(df,x)
+arrange(df,desc(x))
+```
+
+#Select solumns with select()
