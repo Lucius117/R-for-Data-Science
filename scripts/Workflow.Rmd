@@ -35,6 +35,4 @@ If you make an assignment, you don’t get to see the value. You’re then tempt
 
 This common action can be shortened by surrounding the assignment with parentheses, which causes assignment and “print to screen” to happen.
 
-
-
 Press Alt + Shift + K

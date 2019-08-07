@@ -67,7 +67,7 @@ All verbs work similarly:
 # Filter rows with filter()
 
 ```{r}
-filter(flights,month==1,day==1)
+filter(flights, month == 1, day == 1)
 ```
 
 When you run that line of code, dplyr executes the filtering operation and returns a new data frame. dplyr functions never modify their inputs, so if you want to save the result, you’ll need to use the assignment operator, <-:
@@ -117,11 +117,7 @@ NA represents an unknown value so missing values are “contagious”: almost an
 NA==NA
 ```
 
-If you want to determine if a value is missing, use is.na():
-
-```{r}
-is.na(x)
-```
+If you want to determine if a value is missing, use is.na():ˆ
 
 filter() only includes rows where the condition is TRUE; it excludes both FALSE and NA values. If you want to preserve missing values, ask for them explicitly:
 
@@ -137,6 +133,7 @@ arrange() works similarly to filter() except that instead of selecting rows, it 
 
 ```{r}
 flights
+
 arrange(flights,year,month,day)
 ```
 
@@ -147,17 +144,17 @@ arrange(flights, desc(dep_delay))
 ```
 
 ```{r}
-df <- tibble(x=c(5,2,NA))
-arrange(df,x)
-arrange(df,desc(x))
+df <- tibble(x = c(5, 2, NA))
+arrange(df, x)
+arrange(df, desc(x))
 ```
 
 # Select solumns with select()
 
 ```{r}
-select(flights,year,month,day)
-select(flights,year:day)
-select(flights,-(year:day))
+select(flights, year, month, day)
+select(flights, year:day)
+select(flights, -(year:day))
 ```
 
 There are a number of helper functions you can use within select():
@@ -217,8 +214,8 @@ transmute(flights,
 ```{r}
 transmute(flights,
           dep_time,
-          hour=dep_time%/%100,
-          minute=dep_time%%100)
+          hour = dep_time %/% 100,
+          minute = dep_time %% 100)
 ```
 
 ```{r}
