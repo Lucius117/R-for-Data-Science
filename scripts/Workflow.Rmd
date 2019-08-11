@@ -36,3 +36,5 @@ If you make an assignment, you don’t get to see the value. You’re then tempt
 This common action can be shortened by surrounding the assignment with parentheses, which causes assignment and “print to screen” to happen.
 
 Press Alt + Shift + K
+
+R has a powerful notion of the working directory. This is where R looks for files that you ask it to load, and where it will put any files that you ask it to save. RStudio shows your current working directory at the top of the console:
