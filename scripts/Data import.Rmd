@@ -16,23 +16,23 @@ knitr::opts_chunk$set(
 library(tidyverse)
 ```
 
-In this chapter, you’ll learn how to load flat files in R with the readr package, which is part of the core tidyverse.
-
 # read_csv
 
 Most of readr’s functions are concerned with turning flat files into data frames:
 
-* read_csv() reads comma delimited files, read_csv2() reads semicolon separated files (common in countries where , is used as the decimal place), read_tsv() reads tab delimited files, and read_delim() reads in files with any delimiter.
-
-* read_fwf() reads fixed width files. You can specify fields either by their widths with fwf_widths() or their position with fwf_positions(). read_table() reads a common variation of fixed width files where columns are separated by white space.
-
+* read_csv( ) reads comma delimited files
+* read_csv2( ) reads semicolon separated files (common in countries where , is used as the decimal place)
+* read_tsv( ) reads tab delimited files
+* read_delim( ) reads in files with any delimiter.
+* read_fwf( ) reads fixed width files. You can specify fields either by their widths with fwf_widths() or their position with fwf_positions(). 
+* read_table() reads a common variation of fixed width files where columns are separated by white space.
 * read_log() reads Apache style log files. (But also check out webreadr which is built on top of read_log() and provides many more helpful tools.)
 
-The first argument to read_csv() is the most important: it’s the path to the file to read.
+1. The first argument to read_csv() is the most important: it’s the path to the file to read.
 
-When you run read_csv() it prints out a column specification that gives the name and type of each column. That’s an important part of readr, which we’ll come back to in parsing a file.
+2. When you run read_csv() it prints out a column specification that gives the name and type of each column.
 
-You can also supply an inline csv file. This is useful for experimenting with readr and for creating reproducible examples to share with others:
+inline csv file:
 
 ```{r}
 read_csv("a,b,c
@@ -40,9 +40,11 @@ read_csv("a,b,c
          4,5,6")
 ```
 
-In both cases read_csv() uses the first line of the data for the column names, which is a very common convention. There are two cases where you might want to tweak this behaviour:
+read_csv( ) uses the first line of the data for the column names, which is a very common convention. There are two cases where you might want to tweak this behaviour:
 
-1. Sometimes there are a few lines of metadata at the top of the file. You can use skip = n to skip the first n lines; or use comment = "#" to drop all lines that start with (e.g.) #.
+1. Sometimes there are a few lines of metadata at the top of the file.
+    + use skip = n to skip the first n lines.
+    + use comment = "#" to drop all lines that start with #.
 
 ```{r}
 read_csv("The first line of metadata
@@ -57,17 +59,20 @@ read_csv("# A comment I want to skip
          comment="#")
 ```
 
-2. The data might not have column names. You can use col_names = FALSE to tell read_csv() not to treat the first row as headings, and instead label them sequentially from X1 to Xn:
+2. The data might not have column names.
+    + use col_names = FALSE to tell read_csv() not to treat the first row as headings, and instead label them sequentially from X1 to Xn.
+    + pass col_names a character vector which will be used as the column names.
 
 ```{r}
 read_csv("1,2,3
          4,5,6",
          col_names = FALSE)
 
-read_csv("1,2,3\n4,5,6",col_names = c("x","y","z"))
+read_csv("1,2,3\n4,5,6",
+         col_names = c("x","y","z"))
 ```
 
-3. Another option that commonly needs tweaking is na: this specifies the value (or values) that are used to represent missing values in your file:
+3. na: this specifies the value (or values) that are used to represent missing values in your file:
 
 ```{r}
 read_csv("a,b,c
@@ -77,7 +82,7 @@ read_csv("a,b,c
 
 # Parsing a vector
 
-Before we get into the details of how readr reads files from disk, we need to take a little detour to talk about the parse_*() functions. These functions take a character vector and return a more specialised vector like a logical, integer, or date:
+parse_*(): take a character vector and return a more specialised vector like a logical, integer, or date:
 
 ```{r}
 str(parse_logical(c("TRUE","FALSE","NA")))
@@ -87,9 +92,10 @@ str(parse_integer(c("1","2","3")))
 str(parse_date(c("2010-01-01","1979-10-14")))
 ```
 
-These functions are useful in their own right, but are also an important building block for readr. Once you’ve learned how the individual parsers work in this section, we’ll circle back and see how they fit together to parse a complete file in the next section.
+parse_*() functions are uniform: 
 
-Like all functions in the tidyverse, the parse_*() functions are uniform: the first argument is a character vector to parse, and the na argument specifies which strings should be treated as missing:
+* the first argument is a character vector to parse
+* the na argument specifies which strings should be treated as missing:
 
 ```{r}
 parse_integer(c("1","231",".","456"),na=".")
@@ -107,7 +113,7 @@ And the failures will be missing in the output:
 x
 ```
 
-If there are many parsing failures, you’ll need to use problems() to get the complete set. This returns a tibble, which you can then manipulate with dplyr.
+If there are many parsing failures, you’ll need to use problems( ) to get the complete set. This returns a tibble, which you can then manipulate with dplyr.
 
 ```{r}
 problems(x)
@@ -115,15 +121,13 @@ problems(x)
 
 Using parsers is mostly a matter of understanding what’s available and how they deal with different types of input. There are eight particularly important parsers:
 
-1. parse_logical() and parse_integer() parse logicals and integers respectively. There’s basically nothing that can go wrong with these parsers so I won’t describe them here further
-
-2. parse_double() is a strict numeric parser, and parse_number() is a flexible numeric parser. These are more complicated than you might expect because different parts of the world write numbers in different ways.
-
-3. parse_character() seems so simple that it shouldn’t be necessary. But one complication makes it quite important: character encodings.
-
-4. parse_factor() create factors, the data structure that R uses to represent categorical variables with fixed and known values.
-
-5. parse_datetime(), parse_date(), and parse_time() allow you to parse various date & time specifications. These are the most complicated because there are so many different ways of writing dates.
+1. parse_logical( ) parse logicals
+2. parse_integer( ) parse integers
+3. parse_double( ) is a strict numeric parser
+4. parse_number( ) is a flexible numeric parser. 
+5. parse_character( ) seems so simple that it shouldn’t be necessary. But one complication makes it quite important: character encodings.
+6. parse_factor( ) create factors, the data structure that R uses to represent categorical variables with fixed and known values.
+7. parse_datetime( ), parse_date(), and parse_time() allow you to parse various date & time specifications. These are the most complicated because there are so many different ways of writing dates.
 
 ## Number
 
@@ -135,7 +139,9 @@ It seems like it should be straightforward to parse a number, but three problems
 
 3. Numbers often contain “grouping” characters to make them easier to read, like “1,000,000”, and these grouping characters vary around the world.
 
-To address the first problem, readr has the notion of a “locale”, an object that specifies parsing options that differ from place to place. When parsing numbers, the most important option is the character you use for the decimal mark. You can override the default value of . by creating a new locale and setting the decimal_mark argument:
+To address the first problem, readr has the notion of a “locale”, an object that specifies parsing options that differ from place to place. 
+
+1. When parsing numbers, the most important option is the character you use for the decimal_mark. You can override the default value of . by creating a new locale and setting the decimal_mark argument:
 
 ```{r}
 parse_double("1.23")
@@ -143,7 +149,7 @@ parse_double("1.23")
 parse_double("1,23",locale=locale(decimal_mark = ","))
 ```
 
-parse_number() addresses the second problem: it ignores non-numeric characters before and after the number. This is particularly useful for currencies and percentages, but also works to extract numbers embedded in text.
+2. parse_number( ) addresses the second problem: it ignores non-numeric characters before and after the number. This is particularly useful for currencies and percentages, but also works to extract numbers embedded in text.
 
 ```{r}
 parse_number("$100")
@@ -153,7 +159,7 @@ parse_number("20%")
 parse_number("It cost $123.45")
 ```
 
-The final problem is addressed by the combination of parse_number() and the locale as parse_number() will ignore the “grouping mark”:
+3. The final problem is addressed by the combination of parse_number() and the locale as parse_number() will ignore the “grouping mark”:
 
 ```{r}
 parse_number("$123,456,789")
@@ -165,7 +171,9 @@ parse_number("123'456'789",locale=locale(grouping_mark = "'"))
 
 ## Strings
 
-It seems like parse_character() should be really simple — it could just return its input. Unfortunately life isn’t so simple, as there are multiple ways to represent the same string. To understand what’s going on, we need to dive into the details of how computers represent strings. In R, we can get at the underlying representation of a string using charToRaw():
+It seems like parse_character() should be really simple — it could just return its input. Unfortunately life isn’t so simple, as there are multiple ways to represent the same string. To understand what’s going on, we need to dive into the details of how computers represent strings. 
+
+In R, we can get at the underlying representation of a string using charToRaw():
 
 ```{r}
 charToRaw("Hadley")
@@ -208,6 +216,8 @@ The first argument to guess_encoding() can either be a path to a file, or, as in
 
 ## Factors
 
+R uses factors to represent categorical variables that have a known set of possible values. Give parse_factor() a vector of known levels to generate a warning whenever an unexpected value is present:
+
 ```{r}
 fruit <- c("apple","banana")
 parse_factor(c("apple","banana","bananana"),levels=fruit)
@@ -235,13 +245,23 @@ parse_datetime("20101010")
 
 This is the most important date/time standard, and if you work with dates and times frequently, I recommend reading https://en.wikipedia.org/wiki/ISO_8601
 
-* parse_date() expects a four digit year, a - or /, the month, a - or /, then the day:
+* parse_date() expects 
+    + a four digit year
+    + - or /
+    + the month
+    + - or /
+    + the day:
 
 ```{r}
 parse_date("2010-10-01")
 ```
 
-* parse_time() expects the hour, :, minutes, optionally : and seconds, and an optional am/pm specifier:
+* parse_time() expects 
+    + the hour
+    + :
+    + minutes
+    + optionally : and seconds
+    + optional am/pm specifier
 
 ```{r}
 library(hms)
@@ -255,31 +275,31 @@ If these defaults don’t work for your data you can supply your own date-time f
 
 
 * Year
-  + %Y (4 digits).
-  + %y (2 digits); 00-69 -> 2000-2069, 70-99 -> 1970-1999.
+    + %Y (4 digits)
+    + %y (2 digits) 00-69 -> 2000-2069, 70-99 -> 1970-1999.
 
 * Month
-  + %m (2 digits).
-  + %b (abbreviated name, like “Jan”).
-  + %B (full name, “January”).
+    + %m (2 digits).
+    + %b (abbreviated name, like “Jan”).
+    + %B (full name, “January”).
 
 * Day
-  + %d (2 digits).
-  + %e (optional leading space).
+    + %d (2 digits).
+    + %e (optional leading space).
 
 * Time
-  + %H 0-23 hour.
-  + %I 0-12, must be used with %p.
-  + %p AM/PM indicator.
-  + %M minutes.
-  + %S integer seconds.
-  + %OS real seconds.
-  + %Z Time zone (as name, e.g. America/Chicago). Beware of abbreviations: if you’re American, note that “EST” is a Canadian time zone that does not have daylight savings time. It is not Eastern Standard Time! We’ll come back to this time zones.
-  + %z (as offset from UTC, e.g. +0800).
+    + %H 0-23 hour.
+    + %I 0-12, must be used with %p.
+    + %p AM/PM indicator.
+    + %M minutes.
+    + %S integer seconds.
+    + %OS real seconds.
+    + %Z Time zone (as name, e.g. America/Chicago). Beware of abbreviations: if you’re American, note that “EST” is a Canadian time zone that does not have daylight savings time. It is not Eastern Standard Time! We’ll come back to this time zones.
+    + %z (as offset from UTC, e.g. +0800).
 
 * Non-digits
-  + %. skips one non-digit character.
-  + %* skips any number of non-digits.
+    + %. skips one non-digit character.
+    + %* skips any number of non-digits.
 
 The best way to figure out the correct format is to create a few examples in a character vector, and test with one of the parsing functions. For example:
 
@@ -349,35 +369,48 @@ readr contains a challenging CSV that illustrates both of these problems:
 
 ```{r}
 challenge <- read_csv((readr_example("challenge.csv")))
-
-challenge
 ```
 
-There are two printed outputs: the column specification generated by looking at the first 1000 rows, and the first five parsing failures. It’s always a good idea to explicitly pull out the problems(), so you can explore them in more depth:
+There are two printed outputs: 
+
+1. the column specification generated by looking at the first 1000 rows
+2. the first five parsing failures. 
+
+It’s always a good idea to explicitly pull out the problems(), so you can explore them in more depth:
 
 ```{r}
 problems(challenge)
 ```
 
-There are two printed outputs: the column specification generated by looking at the first 1000 rows, and the first five parsing failures. It’s always a good idea to explicitly pull out the problems(), so you can explore them in more depth:
+A good strategy is to work column b column until there are no problems remaining.
 
 ```{r}
 challenge <- read_csv(
   readr_example("challenge.csv"),
-  col_types = cols(x=col_integer(),y=col_character())
+  col_types = cols(
+    x=col_integer(),
+    y=col_character()
+    )
 )
 
 problems(challenge)
 ```
 
-Then you can tweak the type of the x column:
+There are a lot of parsing problems with the x column - there are trailing characters after the integer value. That suggests we need to use a double parser instead. So we tweak the type of the x column:
 
 ```{r}
 challenge <- read_csv(
   readr_example("challenge.csv"),
-  col_types = cols(x=col_double(),y=col_character())
+  col_types = cols(
+    x = col_double(),
+    y = col_character()
+    )
 )
+```
 
+That fixes the first problem, but if we look at the last few rows, you'll see they're dates stored in a character vector
+
+```{r}
 tail(challenge)
 ```
 
@@ -386,13 +419,19 @@ You can fix that by specifying that y is a date column:
 ```{r}
 challenge <- read_csv(
   readr_example("challenge.csv"),
-  col_types = cols(x=col_double(),y=col_date())
+  col_types = cols(
+    x = col_double(),
+    y = col_date()
+    )
 )
 
 tail(challenge)
 ```
 
-Every parse_xyz() function has a corresponding col_xyz() function. You use parse_xyz() when the data is in a character vector in R already; you use col_xyz() when you want to tell readr how to load the data.
+Every parse_xyz() function has a corresponding col_xyz() function. 
+
+* You use parse_xyz() when the data is in a character vector in R already.
+* you use col_xyz() when you want to tell readr how to load the data.
 
 I highly recommend always supplying col_types, building up from the print-out provided by readr. This ensures that you have a consistent and reproducible data import script. If you rely on the default guesses and your data changes, readr will continue to read it in. If you want to be really strict, use stop_for_problems(): that will throw an error and stop your script if there are any parsing problems.
 
@@ -403,40 +442,53 @@ There are a few other general strategies to help you parse files:
 * In the previous example, we just got unlucky: if we look at just one more row than the default, we can correctly parse in one shot:
 
 ```{r}
-challenge2 <- read_csv(readr_example("challenge.csv"),guess_max = 1001)
+challenge2 <- read_csv(readr_example("challenge.csv"), guess_max = 1001)
 ```
 
 * Sometimes it’s easier to diagnose problems if you just read in all the columns as character vectors:
 
 ```{r}
 challenge2 <- read_csv(readr_example("challenge.csv"),
-                       col_types = cols(.default = col_character()))
+                       col_types = cols(.default = col_character())
+                       )
 ```
 
 This is particularly useful in conjunction with type_convert(), which applies the parsing heuristics to the character columns in a data frame.
 
 ```{r}
 df <- tribble(
-  ~x,~y,
-  "1","1.21",
-  "2","2.32",
-  "3","4.56"
+  ~x, ~y,
+  "1", "1.21",
+  "2", "2.32",
+  "3", "4.56"
 )
 
 type_convert(df)
 ```
 
+* If you’re reading a very large file, you might want to set n_max to a smallish number like 10,000 or 100,000. That will accelerate your iterations while you eliminate common problems.
+
+* If you’re having major parsing problems, sometimes it’s easier to just read into a character vector of lines with read_lines( ), or even a character vector of length 1 with read_file( ). Then you can use the string parsing skills you’ll learn later to parse more exotic formats.
+
+
+
 # Writing to a file
 
-readr also comes with two useful functions for writing data back to disk: write_csv() and write_tsv(). Both functions increase the chances of the output file being read back in correctly by:
+* write_csv( )
+* write_tsv( )
+* write_excel_csv()
+
+Both functions increase the chances of the output file being read back in correctly by:
 
 * Always encoding strings in UTF-8.
-
 * Saving dates and date-times in ISO8601 format so they are easily parsed elsewhere.
 
-If you want to export a csv file to Excel, use write_excel_csv() — this writes a special character (a “byte order mark”) at the start of the file which tells Excel that you’re using the UTF-8 encoding.
+arguments are 
 
-The most important arguments are x (the data frame to save), and path (the location to save it). You can also specify how missing values are written with na, and if you want to append to an existing file.
+* x (the data frame to save)
+* path (the location to save it)
+* how missing values are written with na
+* whether append to an existing file.
 
 Note that the type information is lost when you save to csv:
 
@@ -444,6 +496,7 @@ Note that the type information is lost when you save to csv:
 write_csv(challenge,"../data_output/challenge.csv")
 
 read_csv("../data_output/challenge.csv")
+
 ```
 
 This makes CSVs a little unreliable for caching interim results—you need to recreate the column specification every time you load in. There are two alternatives:
@@ -456,13 +509,6 @@ write_rds(challenge,"../data_output/challenge.rds")
 read_rds("../data_output/challenge.rds")
 ```
 
-2. The feather package implements a fast binary file format that can be shared across programming languages:
-
-```{r}
-library(feather)
-write_feather(challenge,"../data_output/challenge.feather")
-read_feather("../data_output/challenge.feather")
-```
  
 # Other types of data
 

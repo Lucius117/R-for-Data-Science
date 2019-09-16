@@ -1,0 +1,182 @@
+---
+title: "R Markdown"
+author: "Xiaochi"
+date: "02/09/2019"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE,
+	comment = "#>",
+  collapse = TRUE
+)
+```
+
+# Text formatting with Markdown
+
+Text formatting
+---------------
+
+*italic*  or _italic_
+
+**bold**   __bold__
+
+`code`
+
+superscript^2^ and subscript~2~
+
+Headings
+--------
+
+# 1st Level Header
+
+## 2nd Level Header
+
+### 3rd Level Header
+
+
+Lists
+-----
+
+* Bulleted list item 1
+
+* Item 2
+    * Item 2a
+    * Item 2b
+
+1.  Numbered list item 1
+
+1.  Item 2. The numbers are incremented automatically in the output.
+
+Links and images
+----------------
+<http://google.com>
+
+[谷歌搜索](http://google.com)
+
+![data structure](../common/test.png)
+
+Tables 
+------
+
+First Header  | Second Header
+------------- | -------------
+Content Cell  | Content Cell
+Content Cell  | Content Cell
+
+# Code chunks
+
+Think of a chunk like a function. 
+
+A chunk should be relatively self-contained, and focussed around a single task.
+
+## Chunk name
+
+each chunk is named after the primary object that it creates. This makes it easier to understand the dependson specification.
+
+```{r data}
+mtcars
+```
+
+
+## Chunk options
+
+* eval = FALSE prevents code from being evaluated. (And obviously if the code is not run, no results will be generated). This is useful for displaying example code, or for disabling a large block of code without commenting each line.
+
+```{r eval=FALSE}
+mtcars
+```
+
+* include = FALSE runs the code, but doesn’t show the code or results in the final document. Use this for setup code that you don’t want cluttering your report.
+
+```{r include=FALSE}
+mtcars
+```
+
+* echo = FALSE prevents code, but not the results from appearing in the finished file. Use this when writing reports aimed at people who don’t want to see the underlying R code.
+
+```{r echo=FALSE}
+mtcars
+```
+
+
+* message = FALSE prevents messages from appearing in the finished file.
+
+* warning = FALSE prevents warnings from appearing in the finished file.
+
+* results = 'hide' hides printed output.
+
+* fig.show = 'hide' hides plots.
+
+* error = TRUE causes the render to continue even if code returns an error. This is rarely something you’ll want to include in the final version of your report, but can be very useful if you need to debug exactly what is going on inside your .Rmd. It’s also useful if you’re teaching R and want to deliberately include an error. The default, error = FALSE causes knitting to fail if there is a single error in the document.
+
+```{r error=TRUE}
+x <- y + 5
+```
+
+
+
+
+## Table
+
+```{r}
+mtcars[1:5, ]
+```
+
+If you prefer that data be displayed with additional formatting you can use the knitr::kable function. 
+
+```{r}
+knitr::kable(
+  mtcars[1:5, ], 
+  caption = "A knitr kable."
+)
+```
+
+## Caching
+
+Normally, each knit of a document starts from a completely clean slate. This is great for reproducibility, because it ensures that you’ve captured every important computation in code.
+
+However, it can be painful if you have some computations that take a long time. 
+
+The solution is cache = TRUE. When set, this will save the output of the chunk to a specially named file on disk. On subsequent runs, knitr will check to see if the code has changed, and if it hasn’t, it will reuse the cached results.
+
+The caching system must be used with care, because by default it is based on the code only, not its dependencies.
+
+For example, here the "processed_data" chunk depends on the "raw_data" chunk:
+
+Caching the processed_data chunk means that it will get re-run if the dplyr pipeline is changed, but it won’t get rerun if the read_csv() call changes.
+
+You can avoid that problem with the dependson chunk option:
+
+dependson should contain a character vector of every chunk that the cached chunk depends on. Knitr will update the results for the cached chunk whenever it detects that one of its dependencies have changed.
+
+Note that the chunks won’t update if a_very_large_file.csv changes, because knitr caching only tracks changes within the .Rmd file. If you want to also track changes to that file you can use the cache.extra option. This is an arbitrary R expression that will invalidate the cache whenever it changes. A good function to use is file.info(): it returns a bunch of information about the file including when it was last modified.
+
+As your caching strategies get progressively more complicated, it’s a good idea to regularly clear out all your caches with knitr::clean_cache().
+
+## Global options
+
+You can do this by calling knitr::opts_chunk$set() in a code chunk. 
+
+## Inline code
+
+There is one other way to embed R code into an R Markdown document: directly into the text, with: 
+
+When inserting numbers into text, format() is your friend. It allows you to set the number of digits so you don’t print to a ridiculous degree of accuracy, and a big.mark to make numbers easier to read. I’ll often combine these into a helper function:
+
+```{r}
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+
+comma(3452345)
+
+comma(.12358124331)
+```
+
+# YAML header
+
+## Bibliographies and Citations
+
+YAML stands for: it’s “yet another markup language”
