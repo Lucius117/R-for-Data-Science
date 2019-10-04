@@ -139,7 +139,6 @@ sim1_dist <- function(a1, a2) {
 
 models <- models %>% 
   mutate(dist = purrr::map2_dbl(a1, a2, sim1_dist))
-
 models
 ```
 
@@ -152,8 +151,7 @@ ggplot(sim1, aes(x, y))+
   geom_point(size = 2, colour = "grey30")+
   geom_abline(
     aes(intercept = a1, slope = a2, colour = -dist),
-    data = filter(models, rank(dist) <= 10)
-  )
+    data = filter(models, rank(dist) <=10))
 ```
 
 ## Models as observations
@@ -398,6 +396,11 @@ df
 model_matrix(df, y ~ x1 + x2)
 ```
 
+```{r}
+model_matrix(df, y ~ x1 + x2 -1)
+```
+
+
 This formula notation is sometimes called “Wilkinson-Rogers notation”, and was initially described in Symbolic Description of Factorial Models for Analysis of Variance, by G. N. Wilkinson and C. E. Rogers https://www.jstor.org/stable/2346786. It’s worth digging up and reading the original paper if you’d like to understand the full details of the modelling algebra.
 
 The following sections expand on how this formula notation works for categorical variables, interactions, and transformation.
@@ -459,6 +462,12 @@ ggplot(sim2, aes(x)) +
 
 You can’t make predictions about levels that you didn’t observe. Sometimes you’ll do this by accident so it’s good to recognise this error message:
 
+```{r error=TRUE}
+tibble(x = "e") %>% 
+  add_predictions(mod2)
+```
+
+
 ## Interactions (continuous and categorical)
 
 What happens when you combine a continuous and a categorical variable? 
@@ -490,7 +499,7 @@ model_matrix(sim3, y ~ x1 + x2)
 
 ```{r}
 mod2 <- lm(y ~ x1 * x2, data = sim3)
-coef(mod2)
+mod2
 ```
 
 
@@ -728,25 +737,45 @@ I’m going to fit five models to this data.
 mod1 <- lm(y ~ ns(x, 1), data = sim5)
 model_matrix(sim5, y ~ ns(x, 1))
 
+model1 <- lm(y ~ poly(x, 1), data = sim5)
+model_matrix(sim5, y ~ poly(x, 1))
+
 mod2 <- lm(y ~ ns(x, 2), data = sim5)
 model_matrix(sim5, y ~ ns(x, 2))
+
+model2 <- lm(y ~ poly(x, 2), data = sim5)
+model_matrix(sim5, y ~ poly(x, 2))
 
 mod3 <- lm(y ~ ns(x, 3), data = sim5)
 model_matrix(sim5, y ~ ns(x, 3))
 
+model3 <- lm(y ~ poly(x, 3), data = sim5)
+model_matrix(sim5, y ~ poly(x, 3))
+
 mod4 <- lm(y ~ ns(x, 4), data = sim5)
 model_matrix(sim5, y ~ ns(x, 4))
 
+model4 <- lm(y ~ poly(x, 4), data = sim5)
+model_matrix(sim5, y ~ poly(x, 4))
+
 mod5 <- lm(y ~ ns(x, 5), data = sim5)
 model_matrix(sim5, y ~ ns(x, 5))
+
+model5 <- lm(y ~ poly(x, 5), data = sim5)
+model_matrix(sim5, y ~ poly(x, 5))
 ```
 
 ```{r}
 grid_x <- sim5 %>% 
   data_grid(x = seq_range(x, n = 50, expand = 0.1)) %>% 
-  gather_predictions(mod1, mod2, mod3, mod4, mod5)
+  gather_predictions(mod1, model1, 
+                     mod2, model2,
+                     mod3, model3,
+                     mod4, model4,
+                     mod5, model5) 
 
-grid_x
+grid_x <- grid_x%>% 
+  mutate(model = factor(model, levels = unique(grid_x$model)))
 ```
 
 ```{r}
@@ -809,6 +838,13 @@ There are a large set of model classes that extend the linear model in various i
     * extend generalised linear models to incorporate arbitrary smooth functions.
     * write a formula like y ~ s(x) which becomes an equation like y = f(x)
     * gam() estimate what that function is (subject to some smoothness constraints to make the problem tractable).
+
+```{r}
+sim5
+mod <- mgcv::gam(y ~ s(x), data = sim5)
+summary(mod)
+```
+
 
 * Penalised linear models, e.g. glmnet::glmnet()
     * add a penalty term to the distance that penalises complex models (as defined by the distance between the parameter vector and the origin). 

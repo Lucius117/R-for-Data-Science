@@ -1,0 +1,26 @@
+---
+title: "Statistical Modeling"
+author: "Xiaochi"
+date: "18/09/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The intended use of a model should shape the appropriate form of the model and  determines the sorts of data that can properly be used to build the model.
+
+Three main uses for statistical models
+
+1. Description
+2. Classification or prediction
+3. Anticipating the consequences of interventions
+
+The appropriate form of a model depends on the purpose.
+
+The main points of this book
+
+1. Statistics is about variation. Describing and interpreing variation is a major goal fo statistics.
+2. You can create empirical, mathematical descriptions not only of a single trait or varailbe but also of the relationsihops between two or more traits. Empirical means based on measurements, data, observations.
+3. Models let you split variation into components: explained versus unexplained

@@ -19,7 +19,7 @@ library(nycflights13)
 library(lubridate)
 ```
 
- progressively build up a model to aid your understanding of the data.
+progressively build up a model to aid your understanding of the data.
 
 We will take advantage of the fact that you can think about a model partitioning your data into pattern and residuals.
 
@@ -86,14 +86,14 @@ But first, lets make a couple of tweaks to the diamonds dataset to make it easie
 ```{r}
 diamonds2 <- diamonds %>% 
   filter(carat <= 2.5) %>% 
-  mutate(lprice = log2(price), lcarat = log2(carat))
+  mutate(log_price = log2(price), log_carat = log2(carat))
 diamonds2
 ```
 
 Together, these changes make it easier to see the relationship between carat and price:
 
 ```{r}
-ggplot(diamonds2, aes(lcarat, lprice))+
+ggplot(diamonds2, aes(log_carat, log_price))+
   geom_hex(bins = 50)
 ```
 
@@ -104,7 +104,7 @@ Let’s take the next step and remove that strong linear pattern.
 1. We first make the pattern explicit by fitting a model:
 
 ```{r}
-mod_diamond <- lm(lprice ~ lcarat, data = diamonds2)
+mod_diamond <- lm(log_price ~ log_carat, data = diamonds2)
 ```
 
 2. Then we look at what the model tells us about the data. 
@@ -112,13 +112,13 @@ mod_diamond <- lm(lprice ~ lcarat, data = diamonds2)
 Note that I back transform the predictions, undoing the log transformation, so I can overlay the predictions on the raw data:
 
 ```{r}
-mod_diamond <- lm(lprice ~ lcarat, data = diamonds2)
+mod_diamond <- lm(log_price ~ log_carat, data = diamonds2)
 
 grid_carat <- diamonds2 %>% 
   data_grid(carat = seq_range(carat, 20)) %>% 
-  mutate(lcarat = log2(carat)) %>% 
-  add_predictions(mod_diamond, "lprice") %>% 
-  mutate(price = 2 ^ lprice)
+  mutate(log_carat = log2(carat)) %>% 
+  add_predictions(mod_diamond, "log_price") %>% 
+  mutate(price = 2 ^ log_price)
 
 grid_carat
 ```
@@ -134,32 +134,32 @@ That tells us something interesting about our data. If we believe our model, the
 Now we can look at the residuals, which verifies that we’ve successfully removed the strong linear pattern:
 
 ```{r}
-mod_diamond <- lm(lprice ~ lcarat, data = diamonds2)
+mod_diamond <- lm(log_price ~ log_carat, data = diamonds2)
 
 diamonds2 <- diamonds2 %>% 
-  add_residuals(mod_diamond, "lresid")
+  add_residuals(mod_diamond, "log_resid")
 diamonds2
 ```
 
 ```{r}
-ggplot(diamonds2, aes(lcarat, lresid)) +
+ggplot(diamonds2, aes(log_carat, log_resid)) +
   geom_hex(bins = 50)
 ```
 
 Importantly, we can now re-do our motivating plots using those residuals instead of price.
 
 ```{r}
-ggplot(diamonds2, aes(cut, lresid)) +
+ggplot(diamonds2, aes(cut, log_resid)) +
   geom_boxplot()
 ```
 
 ```{r}
-ggplot(diamonds2, aes(color, lresid)) +
+ggplot(diamonds2, aes(color, log_resid)) +
   geom_boxplot()
 ```
 
 ```{r}
-ggplot(diamonds2, aes(clarity, lresid)) +
+ggplot(diamonds2, aes(clarity, log_resid)) +
   geom_boxplot()
 ```
 
@@ -172,7 +172,7 @@ If we wanted to, we could continue to build up our model, moving the effects we�
 For example, we could include color, cut, and clarity into the model so that we also make explicit the effect of these three categorical variables:
 
 ```{r}
-mod_diamond2 <- lm(lprice ~ lcarat + color + cut + clarity, data = diamonds2)
+mod_diamond2 <- lm(log_price ~ log_carat + color + cut + clarity, data = diamonds2)
 ```
 
 This model now includes four predictors, so it’s getting harder to visualise. Fortunately, they’re currently all independent which means that we can plot them individually in four plots. 
@@ -186,6 +186,7 @@ If the model needs variables that you haven’t explicitly supplied, data_grid()
 
 
 ```{r}
+mod_diamond2 <- lm(log_price ~ log_carat + color + cut + clarity, data = diamonds2)
 grid_cut <- diamonds2 %>% 
   data_grid(cut, .model = mod_diamond2) %>% 
   add_predictions(mod_diamond2)
@@ -198,13 +199,14 @@ ggplot(grid_cut, aes(cut, pred)) +
 ```
 
 ```{r}
+mod_diamond2 <- lm(log_price ~ log_carat + color + cut + clarity, data = diamonds2)
 diamonds2 <- diamonds2 %>% 
-  add_residuals(mod_diamond2, "lresid2")
+  add_residuals(mod_diamond2, "log_resid2")
 diamonds2
 ```
 
 ```{r}
-ggplot(diamonds2, aes(lcarat, lresid2)) +
+ggplot(diamonds2, aes(log_carat, log_resid2)) +
   geom_hex(bins = 50)
 ```
 
@@ -213,8 +215,9 @@ This plot indicates that there are some diamonds with quite large residuals - re
 It’s often useful to look at unusual values individually:
 
 ```{r}
+mod_diamond2 <- lm(log_price ~ log_carat + color + cut + clarity, data = diamonds2)
 diamonds2 %>% 
-  filter(abs(lresid2) > 1) %>% 
+  filter(abs(log_resid2) > 1) %>% 
   add_predictions(mod_diamond2) %>% 
   mutate(pred = round(2 ^ pred)) %>% 
   select(price, pred, carat:table, x:z) %>% 
@@ -294,6 +297,7 @@ ggplot(daily, aes(wday, n)) +
 2. Next we compute and visualise the residuals:
 
 ```{r}
+mod <- lm(n ~ wday, data = daily)
 daily <- daily %>% 
   add_residuals(mod)
 daily
@@ -414,9 +418,12 @@ daily %>%
 We can see the problem by overlaying the predictions from the model on to the raw data:
 
 ```{r}
+mod_wday_term <- lm(n ~ wday * term, data = daily)
+
 grid_wday_term <- daily %>% 
   data_grid(wday, term) %>% 
   add_predictions(mod_wday_term, "n")
+
 grid_wday_term
 ```
 
@@ -443,6 +450,14 @@ daily %>%
   geom_hline(yintercept = 0, size = 2, colour = "white") +
   geom_line()
 ```
+
+```{r}
+daily %>% 
+  gather_residuals(mod_wday_term, mod_wday_term_rlm) %>% 
+  ggplot(aes(date, resid, colour = model)) +
+  geom_line(alpha = 0.75)
+```
+
 
 It’s now much easier to see the long-term trend, and the positive and negative outliers.
 

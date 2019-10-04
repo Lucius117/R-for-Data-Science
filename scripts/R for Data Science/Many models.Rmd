@@ -62,18 +62,15 @@ nz %>%
   ggplot(aes(year, lifeExp)) +
   geom_line() +
   ggtitle("Full data = ")
-```
 
-```{r}
 nz_mod <- lm(lifeExp ~ year, data = nz)
+
 nz %>% 
   add_predictions(nz_mod) %>% 
   ggplot(aes(year, pred)) + 
   geom_line() +
   ggtitle("Linear trend + ")
-```
 
-```{r}
 nz %>% 
   add_residuals(nz_mod) %>% 
   ggplot(aes(year, resid)) +
@@ -146,8 +143,13 @@ In the course of working with these countries, we are going to have lots of list
 In other words, instead of creating a new object in the global environment, we’re going to create a new variable in the by_country data frame. That’s a job for dplyr::mutate():
 
 ```{r}
+country_model <- function(df) {
+  lm(lifeExp ~ year, data = df)
+}
+
 by_country <- by_country %>% 
   mutate(model = map(data, country_model))
+
 by_country
 ```
 
@@ -191,6 +193,11 @@ by_country$resids[[1]]
 ```
 
 ```{r}
+by_country
+```
+
+
+```{r}
 resids <- unnest(by_country, resids)
 resids
 ```
@@ -228,8 +235,21 @@ The broom package provides a general set of functions to turn models into tidy d
 Here we’ll use broom::glance() to extract some model quality metrics. If we apply it to a model, we get a data frame with a single row:
 
 ```{r}
+nz_mod
+```
+
+
+```{r}
 broom::glance(nz_mod)
 ```
+
+```{r}
+glance_df <- by_country %>% 
+  mutate(glance = map(model, broom::glance))
+
+glance_df$glance[[1]]
+```
+
 
 ```{r}
 by_country %>% 
@@ -240,6 +260,13 @@ by_country %>%
 This isn’t quite the output we want, because it still includes all the list columns.
 
 This is default behaviour when unnest() works on single row data frames. To suppress these columns we use .drop = TRUE:
+
+```{r}
+by_country %>% 
+  mutate(glance = map(model, broom::glance)) %>% 
+  unnest(glance)
+```
+
 
 ```{r}
 glance <- by_country %>% 
@@ -254,12 +281,20 @@ With this data frame in hand, we can start to look for models that don’t fit w
 
 ```{r}
 glance %>% 
-  arrange(r.squared)
+  arrange(r.squared) %>% 
+  select(country, continent, r.squared)
 ```
 
 The worst models all appear to be in Africa. Let’s double check that with a plot. 
 
 Here we have a relatively small number of observations and a discrete variable, so geom_jitter() is effective:
+
+```{r}
+glance %>% 
+  ggplot(aes(continent, r.squared)) +
+  geom_point()
+```
+
 
 ```{r}
 glance %>% 
@@ -277,11 +312,12 @@ bad_fit
 
 ```{r}
 gapminder %>% 
+  # return all rows from gapminder where there are matching values in bad_fit
+  # keep just columns from gapminder
   semi_join(bad_fit, by = "country") %>% 
   ggplot(aes(year, lifeExp, colour = country)) +
   geom_line()
 ```
-
 
 # List-columns
 
@@ -408,8 +444,6 @@ df %>%
   mutate(x2 = stringr::str_split(x1, ","))
 ```
 
-
-
 unnest( ) knows how to handle these lists of vectors:
 
 ```{r}
@@ -434,8 +468,12 @@ sim
 
 ```{r}
 invoke_map(sim$f, sim$params, n = 10)
+# The first argument: a list of functions, or character vector of function names
+# The second argument: a list of lists giving the arguments that vary for each function
+# The subsequent arguments: are passed on to every function.
 ```
 
+* The first argument: 
 
 ```{r}
 sim %>% 
@@ -623,6 +661,11 @@ df2$y
 df2$z
 ```
 
+```{r}
+df2 %>% unnest(y, z)
+```
+
+
 The same principle applies when unnesting list-columns of data frames. You can unnest multiple list-cols as long as all the data frames in each row have the same number of rows.
 
 # Making tidy data with broom
@@ -637,3 +680,158 @@ The broom package provides three general tools for turning models into tidy data
     
 3. broom::augment(model, data) returns a row for each row in data
     * adding extra values like residuals, and influence statistics.
+    
+
+# Hadley
+
+## Nested data (tidyr)
+
+```{r}
+gapminder <- gapminder %>% 
+  mutate(year1950 = year - 1950)
+
+gapminder
+```
+
+```{r}
+by_country <- gapminder %>% 
+  group_by(continent, country) %>% 
+  nest()
+
+by_country
+```
+
+```{r}
+by_country$data[[1]]
+```
+
+```{r}
+country_model <- function(df) {
+  lm(lifeExp ~ year1950, data = df)
+}
+
+models <- by_country %>% 
+  mutate(
+    mod = map(data, country_model)
+  )
+
+models
+```
+
+
+## Functional programming (purrr)
+
+Functional programming emphasises the actions
+
+```{r}
+mtcars
+```
+
+```{r}
+map_dbl(mtcars, mean)
+```
+
+```{r}
+map_dbl(mtcars, median)
+```
+
+```{r}
+funs <- list(mean, median, sd)
+funs
+```
+
+```{r}
+funs %>% 
+  map(~ mtcars %>% map_dbl(.x))
+```
+
+```{r}
+models
+```
+
+```{r}
+models %>% filter(continent == "Africa")
+```
+
+## Models to tidy data (broom)
+
+What data can we extract from a model?
+
+1. R square (glance, model statistics) 
+2. Intercept, Slope (tidy, parameter statistics)
+3. Resid (augment, observation statistics)
+
+```{r}
+models <- models %>% 
+  mutate(
+    tidy = map(mod, broom::tidy),
+    glance = map(mod, broom::glance),
+    rsq = map_dbl(glance, "r.squared"),
+    augment = map(mod, broom::augment)
+  )
+
+models
+```
+
+```{r}
+models %>% 
+  arrange(desc(rsq)) %>% 
+  select(country, continent, rsq)
+```
+
+```{r}
+models %>% 
+  # reorder:
+  # treats its first argument as a categorical variable
+  # reorders its levels based on the values of a second variable
+  ggplot(aes(rsq, reorder(country, rsq))) +
+  geom_point(aes(colour = continent))
+```
+
+```{r}
+models %>% 
+  unnest(data)
+```
+
+```{r}
+models %>% 
+  unnest(tidy)
+```
+
+```{r}
+models %>% 
+  unnest(tidy) %>% 
+  select(continent, country, term, estimate, rsq) %>% 
+  pivot_wider(names_from = term, values_from = estimate) %>% 
+  ggplot(aes(`(Intercept)`, year1950)) +
+  geom_point(aes(colour = continent, size = rsq)) +
+  geom_smooth(se = FALSE) +
+  xlab("Life Expectancy (1950)") +
+  ylab("Yearly improveent") +
+  scale_size_area()
+```
+
+
+```{r}
+models %>% 
+  unnest(glance)
+```
+
+```{r}
+models %>% 
+  unnest(augment)
+```
+
+```{r}
+models %>% 
+  unnest(augment) %>% 
+  ggplot(aes(year1950, .resid)) +
+  geom_line(aes(group = country), alpha = 1 / 3) +
+  geom_smooth(se = FALSE) +
+  geom_hline(yintercept = 0, colour = "white") +
+  facet_wrap(~continent)
+```
+
+1. Store related objects in list-columns.
+2. Learn FP so you can focus on verbs, not objects.
+3. Use broom to convert models to tidy data.

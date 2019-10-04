@@ -158,4 +158,205 @@ How do you respond to the works of others in a way that is both generous and ass
 
 1. Think about why you want to publish your work - and whether it's publishable
 
-* Have I do so
+
+What comes to mind when I think of finding my voice in writing?
+
+my oppinion
+evidence
+How to express myself confirmatively and concisely. How to organize the structure. How to provide the evidence
+
+* Am I allowed to
+    * use personal pronouns?
+    * use direct quotations or always paraphrase?
+    * Use past or present tense in citing literature?
+    * Write in active or passive sentences?
+    * Write in long or short sentences?
+
+# Voice As Relationship
+
+Standing on the shoulders of giants - as researchers, we find our voice through the voices of others.
+
+Voice is about showing how your research builds on earlier work, how you locate your perspective in relation to ongoing debates in the field.
+
+Vocation: a calling, a being called in the sense of being called to dedicate one's life and time to a particular profession or practice.
+
+Keith Devlin's Life by the Numbers
+
+
+
+
+A meeting Rstudio Cheif scienctist Hadley Wickham,
+
+Dear Dr. Wickham,
+
+I'm xiaochi from Macquarie University, Australia. I'm a Ph.D. researcher in Environmental Sciences and I'm a huge fan of your work. Your "R for Data Sciences" has entirely changed my research method, equiping me with modernized eReserach technique so that I can conduct my research in a more efficient and reproducible way, which I really appreicate.
+
+I'd like to show you my reserach progress based on your ............
+
+If my thesis was written as a story, what story would it tell?
+
+to investigate the relationship between environmental lead contamination and children blood lead level.
+
+try to develop a regular
+
+writing as architecture
+
+# Structure
+
+start with the familiar. Go from what your readers know to what
+
+
+# Week 5: Revising, Editing, Proofreading
+
+how have my ideas about my reserach changed over the last few months?
+
+I changd my idea from focusing on studying the methology of machine learning to focusing on the applicaiton of those tehcniques. 
+
+
+
+
+
+
+# Writing for Publication Workshops
+
+## Introduction Section
+22 July
+
+## Data and Result
+24 Sept
+
+* Do you need a figure or a table
+  * Which is most appropriate?
+  * Use the fewest figures and tables to tell your reserach story
+  * Figures and tables should be able to stand on their own
+  * Ensure figures and tables have a strong visual impact
+
+* Figure legends & Table titles
+
+
+* Order of writing
+  1. Tables and Figures
+  2. Results
+  3. Methods
+  4. Introduction
+  5. Discussion
+  6. Abstract
+
+* Order of results is important
+  * Better understood if in a certain order
+
+text should highlight important points
+
+How to reivew article
+
+past tense
+
+present tense
+modal verbs
+
+1. What do my results say?
+The difference of growthlines between 2 groups
+
+2. What do these results mean in their context?
+These results mean Aboriginal kids tends to have a higher BLL than Non-Aboriginal Kids
+
+3. 
+
+
+## Discussion 
+15 Oct
+
+## Method Section 
+12 Nov
+
+## Abstracts & Titles 
+3 Dec
+
+# Grant writing
+Ian Pauisen
+
+* Shotgun theory of grant writing
+
+* Understand your audience: 
+  * panel
+  * the people outside the filed
+ 
+* Capture attention
+  * First half page is absolutely critical, don't be too technical
+  * Aim, Objective, Background
+
+* Graphic that summarize the grant
+
+* Memorable Title
+
+* Target the grant to the reviewers you want
+  * Title
+  * First page
+  * FORC codes
+
+* You're telling a story
+  * background, problem, opportunity, aim
+
+* Grant Aims can be ursued in parallel
+
+* Don't need to reinvent the wheel
+  * Get examples of successful grants
+ 
+* Track Record - Even more important than you think it is
+  * What you are doing, why you are doing
+  * understand what each section of the grant is asking for
+  * you need to sell yourself as hard as you can
+  * Your track record should tell a story: What you have done, 
+  * tell otehr people: you are the first person to do this, you establish this...
+
+* Common Problems
+  * Too technical, too much jargon
+  * Make sure you answer:
+    * Why is this cool and important?
+    * Why is this the right team?
+    * Why is this important to Australia?/the real world?
+  * No typos - make it polished and attractive
+  * If it not ready - don't submit it this round
+
+* Get Feedback
+  * people from outside filed
+  * Non-experts
+
+* Rejoinder - can make a difference
+
+Shotgun theory of grant application
+Write your grant at the panel spokesperson
+Capture theri attention
+Tell a story - right approach, right team, right time
+Track record is critical
+Get advice/feedback from your mentors, HoD, Faculty research manager, successful grantees
+
+reserach funding and grant opportunities/grant-applications
+
+* Tips for gettign grants
+  * Every ategory of grants needs a different approach
+  * Apply for as many grants as we possibly can
+    * we will never get it if we don't apply for
+  * Ask the Grant Library to see mroe examples of successful grant aplicaiton
+
+Followship
+* Outstanding research outputs
+ * publish high-impact articles
+* Excellent communication skills
+  * writing skills
+  * presentation skills
+  * plan ahead for interview: cutting-edge future reserach, interdisciplinary collaborations
+* Strong recommendation from PhD supervisor
+  * Supervisor: top scientist in the world
+  * Strong interpersonal skills
+  * Highly self-motivated
+
+# Formatting Thesis in R
+Dr. Brendan Lanham
+
+Questions:
+
+1. How to cite/add reference?
+2. How to set styles
+3. How to cooperate with the supervisor
+
