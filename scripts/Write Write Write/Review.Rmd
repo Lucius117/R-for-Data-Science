@@ -1,0 +1,16 @@
+---
+title: "Review"
+author: "Xiaochi"
+date: "15/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Predictive Modeling for Public Health: Preventing Childhood Lead Poisoning
+
+we build a model that predicts the risk of a child to being poisoned so that an intervention can take place before that happens.
+
+

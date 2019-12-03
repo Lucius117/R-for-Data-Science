@@ -1,0 +1,35 @@
+---
+title: "HDR Research Budget"
+author: "Xiaochi"
+date: "12/11/2019"
+output: html_document
+bibliography: AGU.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The level of lead in the blood of children in a community, a region or a country is expressed as the geometric mean of individual blood lead concentrations in micrograms per decilitre (μg/dl).
+
+# Project Title
+
+
+# Project Summary
+
+
+# Methodology
+
+Machine learning is a rapidly advancing field of artificial intelligence whereby computer programs strategize in response to diverse data input. Stochastic gradient boosting is a refinement of classification and regression tree analysis (Breiman et al. 1984). It is a hybrid “boosting and bagging” algorithm that randomly selects subsets of the sample data (without replacement) and uses them to fit a series of very simple decision trees in sequence. Each successive tree is built from the prediction residuals
+of the preceding tree(s) and the final model is a summation of the best partitioning of the data (Friedman 2002). Models are developed using the software known as TreeNet® (Salford Systems, Inc.). Model construction is fast, requires no a priori assumptions about the relationship between the
+response and predictor variables, does not limit the number of predictor variables, and is capable of uncovering the underlying structure in data that are non-additive or hierarchical in nature (Prasad et al. 2006). Resultant models are robust with a high degree of predictive accuracy (Hochachka et al.
+2007). The user can define an unlimited number of predictor variables that might potentially influence the occurrence of the target variable (in the case of our example, blood lead levels in Golden Eagles).
+
+
+These features are highly applicable to the field of applied ecology (Olden et al. 2008) and critical for evaluating the validity of models. With the rapidly changing environment and numerous threats to biological diversity, such accurate predictive capability is increasingly important. With SGB, evaluation can be accomplished by: 1) applying the model to an independent dataset; 2) withholding a randomly selected portion of the dataset and using it as “testing” data (we used this method for our example dataset, withholding 20% of the data to be used for independent testing); or 3) in the case of very small datasets, through k-fold cross-validation (Kohavi 1995). The software produces a confusion matrix of the percent of eagles (in the case of our example model) correctly predicted with the presence or absence of elevated BLL and a Receiver Operating Characteristic Curve (ROC) that describes the sensitivity and specificity of the model (Collinson 1998). To further aid in interpretation of the models, and the biological significance of the results, TreeNet® produces an index ranking the relative importance of the predictor variables. The top predictor variable is given a score of 100 and then all other predictors are ranked in descending order, based on their influence upon the target variable, in comparison with the top predictor. To further aid in the interpretation of the data, graphic displays of dependence plots for single variables and two way interactions among variables are produced (Friedman 2001, 2002). This information, combined with expert opinion about a species, can be a valuable tool in the development of models that have ecological validity.
+
+
+
+# Project timeline for this year
+
+# References

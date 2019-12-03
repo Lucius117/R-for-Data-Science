@@ -1,0 +1,149 @@
+---
+title: "Literature Review"
+author: "Xiaochi"
+date: "22/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(litsearchr)
+library(adjutant)
+library(dplyr)
+library(ggplot2)
+library(tidytext)
+require(shiny)
+```
+
+# Advanced serach techniques
+
+Using the right keywords
+
+Phrase searching
+* use "double quotes" and the search tool will search for those words together in that order
+
+Field Searching
+* All fields
+* Author
+* Article Title
+* Abstract
+* Keywords
+
+Boolean logic
+* AND narrows the search
+* OR broadens the search
+* NOT narrows the search by excluding terms
+
+Truncation
+* a word ending is replaced by *
+* searches for different forms of the same word and can expand your search results
+* advert* : advertising, advertisement
+* child* : children, childhood, childish
+
+Nested searches
+* ( ) grouped one concept (synonyms)
+* "junk food" AND advert* AND (health OR obes*) AND (child* OR "primary school")
+
+
+
+
+space-time analysis
+
+("blood lead" OR "blood lead level" OR "blood Pb" OR "blood Pb level" OR PbB OR lead OR Pb contamination OR exposure) AND ("spatial temporl" OR "spatio temporal" OR "spatial-temporal" OR spatiotemporal OR spatial* OR gis  OR "space-time analysis"OR "machine learning" OR "deep learning" OR "random forest")
+
+
+
+```{r}
+runAdjutant() #this will launch Adjutant user interface
+```
+
+
+
+
+# lood lead levels in children in urban and rural areas: Using multilevel
+modeling to investigate impacts of gender, race, poverty, and
+the environment, 2019
+
+## hypothesis
+
+1. a child's environmentalmeasures, proxied by block group variables (road
+coverage, home age, urban/rural, population race/ethnicity, and poverty), will be more strongly associated with BLL than individual-level variables (child sex, age, race/ethnicity, and year of test).
+
+2. higher road coverage will be more strongly associated with higher BLL than age of homes in urban areas because of extensive road systems.
+
+3. in rural areas,which havemore limited road coverage, that age of homes will be more strongly associated with BLL than percent roads.
+
+4. differences in children's BLL will exist by race/ethnicity at the individual and block group level.
+
+## Data
+
+# Spatial distribution of lead contamination in soil and equipment dust
+at children's playgrounds in Beijing, China, 2018
+
+The present study aims to assess lead levels in playground soil
+and accumulated dust on playground equipment (i.e. the apparatus
+used by children for play) across Beijing, China. 
+
+Instead of evaluating
+the lead pollution level against a generic soil environmental
+quality standard, this study focused on the potential health risk to
+children from their playground activities.
+
+## Method
+
+This included Pearson productmoment correlation analysis (Pearson correlation analysis), which estimates the linear dependence between two variables. The analysis rendered correlation coefficients ranging from -1 to 1, where -1 indicates a perfect negative linear relationship, 0 indicates
+no correlation, and 1 indicates perfect positive linear relationship.
+
+Factor analysis was conducted using the principle component analysis (PCA) method with varimax rotation to identify latent factors.
+
+the present study used the IEUBK model, which derives the probability of BLL exceeding an acceptable level.
+
+
+
+
+# Blood lead levels of children in urban and suburban areas in China
+(1997–2015): Temporal and spatial variations and influencing factors, 2017
+
+(1) to track the trend in Chinese children's BLLs from 1997 to 2015; 
+(2) to investigate the correlations between BLLs and the Pb concentrations in soil and PM10 (particulate matter < 10 μm) concentrations in the atmosphere.
+
+
+# Random forest as a generic framework for predictive modeling of spatial and
+spatio-temporal variables, 2018
+
+
+
+
+
+
+
+
+Random forest, however, ignores the spatial locations of the observations and hence any spatial autocorrelation in the data not accounted for by the covariates. Modeling the relationship with covariates and spatial autocorrelation jointly using machine learning techniques is relatively novel and not entirely worked out. A more sensible and robust
+use of geographical space is needed.
+
+In this paper we describe a generic framework for spatial and spatiotemporal prediction that is based on random forest and which we refer to as ``RFsp''. With this framework we aim at including information derived from the observation locations and their spatial distribution into predictive modeling.
+
+## Methods
+
+
+# High prevalence of elevated blood lead levels in both rural and urban Iowa newborns: Spatial patterns and area-level covariates
+
+
+# Use of machine learning algorithms to predict the incidence of lead exposure in golden eagles
+
+
+# Lead poisoning and health
+
+
+Thank you f
+
+The soil water balance equation was used to compute actual evapotranspiration for each crop,...
+
+
+my research is about investigating the relationship between lead contamination and children's public health. Wh
+
+What do you know about it?
+lead is a natural toxic metal. Is is very dangerous to childern. How it affect children health. What is the characteristic of it.
+What excites you about it?
+What do you want to find out about it?

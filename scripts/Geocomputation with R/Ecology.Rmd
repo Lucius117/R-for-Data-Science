@@ -1,0 +1,53 @@
+---
+title: "Ecology"
+author: "Xiaochi"
+date: "09/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(raster)
+library(RQGIS)
+library(mlr)
+library(dplyr)
+library(vegan)
+```
+
+
+# Data and data preparation
+
+```{r}
+data("study_area", "random_points", "comm", "dem", "ndvi", package = "RQGIS")
+```
+
+```{r}
+study_area
+```
+
+```{r}
+random_points
+```
+
+```{r}
+comm
+```
+
+```{r}
+dem
+```
+
+```{r}
+ndvi
+```
+
+```{r}
+plot(dem)
+plot(study_area, alpha = 0, add = TRUE)
+```
+
+```{r}
+get_usage("saga:sagawetnessindex")
+```
+

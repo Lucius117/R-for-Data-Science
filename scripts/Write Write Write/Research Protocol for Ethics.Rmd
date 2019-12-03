@@ -1,0 +1,66 @@
+---
+title: "Research Protocol for Ethics"
+author: "Xiaochi"
+date: "14/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#	Cover page
+
+study title
+
+protocol version number and date
+
+# Introduction
+
+this should establish the importance of the proposed study and put it into context with regard to both current practice and prior investigations that bear on the proposal. Jargon should be avoided and abbreviations explained.
+
+Lead is one of the best known toxic heavy metals. The level of lead in the blood is a highly reliable biological marker of recent exposure to lead. Elevated blood lead level (10 μg/dl or above) has been associated with toxicity in the developing brain and nervous system of young children, leading to lower intelligence quotient (IQ). According to recent evidence, however, loss of IQ was observed in children with blood lead levels below 10 μg/dl, so prevention activities should be initiated to bring down the levels of lead in the blood to the lowest possible level.
+
+In children, the potential for adverse effects of exposure to lead is increased because (i) the intake of lead per unit of body weight is higher for children than for adults; (ii) young children often place objects in their mouths, resulting in ingestion of dust and soil and, possibly, increased intake of lead; (iii) physiological uptake rates of lead in children are higher than in adults; and (iv) young children are undergoing rapid development, their systems are not fully developed and consequently they are more vulnerable than adults to the toxic effects of lead.
+
+
+#	Aims and objective
+
+With GIS, maps can be created that show the location and age of every housing
+unit in an area. These maps can include information on other risk factors for lead poisoning, including population distributions, housing conditions, and BLLs of resident children during a given period. This information can be used to show the relationship between housing units and
+risk factors. GIS visually presents these geospatial and temporal relationships in data that have many uses:
+
+* To identify where high-risk children live;
+* To assess screening penetration among high risk groups;
+* To obtain a better understanding of changes over time in areas where children at high risk live;
+* To evaluate the impact of our targeted screening and other intervention efforts and improve them; and
+* To identify those housing units responsible, over a period of years, for multiple cases of childhood lead poisoning (17).
+
+
+#	Hypothesis
+
+#	Study design
+
+##	Study population
+##	Sample size
+##	Inclusion criteria
+##	Exclusion criteria
+
+#	Study design and methods
+
+including circumstances under which study will be terminated.
+
+#	Data Analysis
+
+including details of the power calculations used in designing the study.
+
+#	Investigator obligations
+
+## Storage of data
+## Adverse event reporting
+## Handling of adverse events
+
+#Reference
+
+List of references to work of other researchers in the field and/or short (one page) literature review (as an attachment)
+

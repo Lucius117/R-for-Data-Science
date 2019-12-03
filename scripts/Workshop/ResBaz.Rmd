@@ -528,3 +528,19 @@ which is the best network
 
 preallocation
 
+
+# Research Computing
+
+Macquarie Subscription
+my.nci.org.au
+
+www.infrastructure.aws
+
+rstudio.science.mq.edu.au
+
+hive.science.mq.edu.au/hpc
+
+NCI
+
+mq-data-advice.talkyard.net
+

@@ -1,0 +1,168 @@
+---
+title: "Writing Basics"
+author: "Xiaochi"
+date: "14/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Academic Style 
+
+Formal, Straightforward, Clearly Written
+
+## Verb Choice 
+
+single verb
+
+When these concepts are used they produce an immediate health care benefit.
+
+According to some biologists, offering clear proof of the decreasing numbers of frogs has been difficult.
+
+Researchers examined the way strain intensifies around a geological fault.
+
+
+## Personal Pronouns
+
+We tested the effects of prey protein and lipid content on the body composition and subsequent diet regulation of the web building spider.
+
+The results can be seen in Table 1.
+
+## Negative Forms: no, little ,few
+
+The analysis yielded no new results.
+
+Mood had little effect on judgments
+
+The problem has few viable solutions.
+
+Neither A nor B is visible.
+
+## Direct Questions: Indirect
+
+In academic writing, indirect questions more common.
+
+It is unknown as to why antibiotic resistance has increased.
+
+However, it is unclear why antibiotic resistance has increased.
+
+## Adverb Placement: Middle
+
+This method was originally developed my Charles et al., 2011.
+
+The morphology of the samples was then analysed using a scanning electron
+microscope.
+
+# Word Choice
+
+Precise, Simple, Necessary
+
+include
+
+* incomplete list
+
+comprise 
+
+* complete list
+* no passive voice
+* The whole comprises the parts
+* The pie comprises 8 slices
+
+compose
+
+* The whole was composed of the parts
+* The parts compose the whole
+
+consist of
+
+* The whole consists of the parts
+
+Affect
+
+* verb
+* TO act, to influence
+
+Effect
+
+* noun
+* A result
+
+Its
+
+* possessive form of it
+* of it
+
+It's
+
+* It is
+
+Can
+
+* The power or ability to do something
+
+May
+
+* Refers rather to the possibility or to permission
+
+Interval
+
+* The time between two specified instants, events, or states
+
+Period
+
+* The time during which events or states occur
+
+Like
+
+* preposition
+* Introduces a prepositional phrase
+* Like Earth, Mars has an elliptical orbit
+
+As
+
+* conjunction
+* Introduces a clause
+* In Bohr’s theory, the electron orbits the nucleus as a planet orbits a star.
+
+Principal
+
+* adjective: main or most important
+* noun: person in leading position, chief, head person
+
+Principle
+
+* noun:law, theorem
+
+Fewer
+
+* counted
+
+Less
+
+* uncounted
+
+
+Ability
+
+* Mental/physical power to do somethin, or the skill in doing it.
+
+Capacity
+
+* The full amount that something can hold, contain or receive
+
+Alternately
+
+* Following by turns: first one, then the otehr
+
+Alternatively
+
+* Involving a choice between two or more co
+
+
+
+
+
+
+

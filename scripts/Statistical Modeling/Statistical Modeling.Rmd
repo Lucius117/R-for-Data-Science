@@ -7,20 +7,418 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require(mosaic)
+require(mosaicData)
 ```
 
-The intended use of a model should shape the appropriate form of the model and  determines the sorts of data that can properly be used to build the model.
+# Chapter 1 Introduction
 
-Three main uses for statistical models
+```{r}
+sqrt(25)
+```
 
-1. Description
-2. Classification or prediction
-3. Anticipating the consequences of interventions
+```{r}
+seq(3, 10)
+```
 
-The appropriate form of a model depends on the purpose.
+```{r}
+seq(10,3)
+```
 
-The main points of this book
+```{r}
+seq(3,10,by=2)
+```
 
-1. Statistics is about variation. Describing and interpreing variation is a major goal fo statistics.
-2. You can create empirical, mathematical descriptions not only of a single trait or varailbe but also of the relationsihops between two or more traits. Empirical means based on measurements, data, observations.
-3. Models let you split variation into components: explained versus unexplained
+```{r}
+date()
+```
+
+```{r}
+x <- 16
+x
+```
+
+```{r}
+x <- seq(1,7)
+x
+```
+
+# Chapter 2 Data in R
+
+```{r}
+head(Galton)
+```
+
+```{r}
+Swim <- read.csv("http://tiny.cc/mosaic/swim100m.csv")
+```
+
+```{r}
+names(Swim)
+```
+
+```{r}
+summary(Swim)
+```
+
+```{r}
+mean(Swim$time)
+```
+
+```{r}
+mean( ~ time, data = Swim)
+```
+
+```{r}
+min( ~ time, data = Swim)
+```
+
+```{r}
+mean(time ~ sex, data = Swim )
+```
+
+```{r}
+mean( Swim$time ~ Swim$sex )
+```
+
+```{r}
+Swim$minutes = Swim$time/60
+```
+
+```{r}
+head(Swim, n = 3L)
+```
+
+```{r}
+Swim$time = Swim$time/60
+head(Swim, n = 3L)
+```
+
+```{r}
+Kids <- read.csv("http://tiny.cc/mosaic/kidsfeet.csv")
+nrow(Kids)
+```
+
+```{r}
+deal(Kids, 5)
+```
+
+```{r}
+resample(Kids, 5)
+```
+
+# Chapter 3 Describing Variation
+
+```{r}
+Galton = read.csv("http://tiny.cc/mosaic/galton.csv")
+```
+
+```{r}
+mean( ~ height, data = Galton)
+```
+
+```{r}
+median( ~ height, data = Galton)
+```
+
+```{r}
+sd( ~ height, data = Galton)
+```
+
+```{r}
+var( ~ height, data = Galton)
+```
+
+```{r}
+mean(Galton$height)
+```
+
+```{r}
+median(Galton$height)
+```
+
+```{r}
+median(height ~ sex, data = Galton)
+```
+
+```{r}
+pdata( ~ height, 63, data = Galton)
+```
+
+```{r}
+qdata( ~ height, 0.2, data = Galton)
+```
+
+```{r}
+qdata( ~ height, 0.5, data = Galton)
+```
+
+```{r}
+median( ~ height, data = Galton)
+```
+
+```{r}
+qdata( ~ height, c(0.25, 0.75), data = Galton)
+```
+
+```{r}
+qdata( ~ height, c(0.025, 0.975), data = Galton)
+```
+
+```{r}
+quantile(Galton$height, c(0.025, 0.975))
+```
+
+```{r}
+IQR( ~ height, data = Galton)
+```
+
+```{r}
+histogram( ~ height, data = Galton)
+```
+
+```{r}
+histogram( ~ height, data = Galton, breaks = 25 )
+```
+
+```{r}
+histogram( ~ height, data = Galton, type = "count")
+```
+
+```{r}
+histogram( ~ height, data = Galton, type = "density",
+     xlab="Height (inches)", 
+     main="Distribution of Heights",
+     col="gray")
+```
+
+```{r}
+densityplot( ~ height, data = Galton) 
+```
+
+```{r}
+densityplot( ~ height, data = Galton, plot.points = FALSE)
+```
+
+```{r}
+bwplot( ~ height, data = Galton)
+```
+
+```{r}
+bwplot(height ~ sex, data = Galton)
+```
+
+```{r}
+tally( ~ sex, data = Galton)
+```
+
+```{r}
+tally( ~ sex, data = Galton)/nrow(Galton)
+```
+
+# Chapter 4 Groupwise models
+
+```{r}
+Runners = read.csv("http://tiny.cc/mosaic/Cherry-Blossom-2008.csv")
+```
+
+```{r}
+mean( gun ~ 1, data = Runners)
+```
+
+
+```{r}
+median(gun ~ 1, data = Runners )
+```
+
+```{r}
+sd( gun ~ 1, data = Runners )
+```
+
+```{r}
+mean(gun ~ sex, data = Runners)
+```
+
+```{r}
+sd( gun ~ sex, data = Runners )
+```
+
+```{r}
+CPS = read.csv("http://tiny.cc/mosaic/cps.csv")
+```
+
+```{r}
+mean( wage ~ sector, data = CPS )
+```
+
+```{r}
+W <- read.csv("http://tiny.cc/mosaic/whickham.csv")
+```
+
+```{r}
+levels(W$outcome)
+```
+
+```{r}
+W$ageGroups <- cut(W$age, breaks=c(0,30,40,53,64,75,100))
+```
+
+```{r}
+Kids <- KidsFeet   # just get this from mosaicData instead of going out on the web with read.csv
+```
+
+# Chapter 5 Confidence intervals
+
+```{r}
+Runners = read.csv("http://tiny.cc/mosaic/Cherry-Blossom-2008.csv")
+names( Runners )
+```
+
+```{r}
+Mysamp = deal( Runners, 100 )
+```
+
+```{r}
+mean( gun ~ sex, data = Mysamp )
+```
+
+```{r}
+nums = c(1,2,3,4,5)
+nums
+```
+
+```{r}
+resample(nums)
+```
+
+```{r}
+mean( gun ~ sex, data = resample(Mysamp) )
+```
+
+```{r}
+mean( gun ~ sex, data = resample(Mysamp) )
+```
+
+```{r}
+do(5) * mean( gun ~ sex, data = resample(Mysamp) )
+```
+
+```{r}
+trials = do(500) * mean( gun ~ sex, data = resample(Mysamp) )
+head(trials)
+```
+
+```{r}
+confint(trials)
+```
+
+```{r}
+histogram(trials$F)
+```
+
+```{r}
+trials = do(500) * mean( gun ~ sex, data = deal(Runners, 100) )
+confint(trials)
+```
+
+```{r}
+Grades = read.csv("http://tiny.cc/mosaic/grades.csv")
+gp = read.csv("http://tiny.cc/mosaic/grade-to-number.csv")
+all.students = merge(Grades, gp)
+one.student = subset( all.students, sid=="S31509" )
+one.student
+```
+
+```{r}
+mean( ~ gradepoint, data=one.student )
+```
+
+```{r}
+GPAs <- mean( gradepoint ~ sid, data=all.students )
+head(GPAs)
+```
+
+```{r}
+trials = do(100)*mean( ~ gradepoint, data=resample(one.student), na.rm = TRUE )
+```
+
+```{r}
+confint(trials)
+```
+
+# Chapter 6 Language of models
+
+```{r}
+Utils <- Utilities
+```
+
+```{r}
+CPS <- CPS85
+```
+
+```{r}
+xyplot( ccf ~ temp, data = Utils)
+```
+
+```{r}
+xyplot( ccf ~ temp, data=Utils, 
+      xlab = "Temperature (deg F)",
+      ylab = "Natural Gas Usage (ccf)")
+```
+
+```{r}
+bwplot( wage ~ sex, data=CPS)
+```
+
+```{r}
+bwplot(wage~sector, data=CPS, ylim=c(0,30) )
+```
+
+```{r}
+densityplot( ~ wage, groups = sex, data = CPS, auto.key = TRUE )
+```
+
+```{r}
+xyplot( wage ~ age, groups = sex, data = CPS, auto.key = TRUE)
+```
+
+```{r}
+xyplot( wage ~ age | sex, data = CPS)
+```
+
+```{r}
+Swim <- read.csv("http://tiny.cc/mosaic/swim100m.csv")
+```
+
+```{r}
+mod1 <- lm( time ~ 1, data = Swim)
+```
+
+```{r}
+fitted(mod1)
+```
+
+```{r}
+xyplot( time + fitted(mod1) ~ year, data = Swim)
+```
+
+```{r}
+mod2 <- lm( time ~ 1 + year, data = Swim)
+mod3 <- lm( time ~ 1 + sex, data = Swim)
+mod4 <- lm( time ~ 1 + sex + year, data = Swim)
+mod5 <- lm( time ~ 1 + year + sex + year:sex, data = Swim)
+```
+
+```{r}
+xyplot( fitted(mod5) + fitted(mod3) ~ year, data = Swim, 
+    auto.key = TRUE)
+```
+
+```{r}
+mod7 <- lm( time ~ year + I(year^2) + sex, data = Swim)
+```
+
+```{r}
+xyplot( time + fitted(mod7) ~ year, data = Swim)
+```
+
