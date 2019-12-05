@@ -3,6 +3,8 @@ title: "Statistical Modeling"
 author: "Xiaochi"
 date: "18/09/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -420,5 +422,189 @@ mod7 <- lm( time ~ year + I(year^2) + sex, data = Swim)
 
 ```{r}
 xyplot( time + fitted(mod7) ~ year, data = Swim)
+```
+
+# Chapter 7 Model formulas and coefficients
+
+```{r}
+SwimRecords
+```
+
+```{r}
+mod <- lm( time ~ year + sex, data = SwimRecords)
+```
+
+```{r}
+coef(mod)
+```
+
+```{r}
+summary(mod)
+```
+
+```{r}
+mod2 <- lm( time ~ year * sex, data = SwimRecords)
+coef(mod2)
+```
+
+```{r}
+CPS <- CPS85  # from mosaicData
+RaceSex <- cross(CPS$sex, CPS$race)
+summary(RaceSex)
+```
+
+```{r}
+utils <- read.csv("http://tiny.cc/mosaic/utilities.csv")
+```
+
+
+```{r}
+mod1 <- lm( temp ~ month, data = utils)
+mod1
+```
+
+```{r}
+xyplot(temp + fitted(mod1) ~ month, data = utils)
+```
+
+
+```{r}
+mod2 <- lm( temp ~ as.factor(month), data = utils)
+mod2
+```
+
+
+```{r}
+xyplot( temp + fitted(mod2) ~ month, data = utils )
+```
+
+Chapter 8 Fitting models to data
+
+```{r}
+Swim <- SwimRecords  # from mosaicData
+```
+
+
+```{r}
+mod1 <- lm( time ~ year + sex, data = Swim)
+```
+
+
+```{r}
+modvals <- fitted(mod1)
+```
+
+```{r}
+residvals <- resid(mod1)
+```
+
+```{r}
+mean(fitted(mod1))
+```
+
+```{r}
+var(resid(mod1))
+```
+
+```{r}
+sd(resid(mod1))
+```
+
+```{r}
+summary(resid(mod1))
+```
+
+```{r}
+sum(Swim$time^2)
+```
+
+```{r}
+sum(fitted(mod1)^2)
+```
+
+```{r}
+sum(resid(mod1)^2)
+```
+
+```{r}
+sum(fitted(mod1)^2) + sum(resid(mod1)^2)
+```
+
+```{r}
+sum(Swim$time^2)
+```
+
+```{r}
+sum(resid(mod1))
+```
+
+```{r}
+sum(resid(mod1)^2)
+```
+
+```{r}
+Swim$afterwar <- Swim$year - 1945
+```
+
+```{r}
+mod1 <- lm( time ~ year + sex, data = Swim)
+```
+
+```{r}
+mod2 <- lm( time ~ year + sex + afterwar, data = Swim)
+```
+
+```{r}
+mod3 <- lm( time ~ afterwar + year + sex, data = Swim)
+```
+
+```{r}
+head(fitted(mod2))
+```
+
+```{r}
+head(fitted(mod3))
+```
+
+```{r}
+mod <- lm( time ~ sex - 1, data = Swim)
+```
+
+```{r}
+mod <- lm( time ~ sex, data = Swim)
+```
+
+Chapter 9 Correlation and partitioning of variation
+
+```{r}
+Swim <- SwimRecords # from mosaicData
+```
+
+```{r}
+mod <- lm( time ~ year + sex, data = Swim)
+```
+
+```{r}
+var(fitted(mod)) / var(Swim$time)
+```
+
+```{r}
+rsquared(mod)
+```
+
+```{r}
+summary(mod)
+```
+
+```{r}
+mod2 <- lm( time ~ year, data = Swim)
+```
+
+```{r}
+sqrt(rsquared(mod2))
+```
+
+```{r}
+cor(Swim$time, Swim$year)
 ```
 
