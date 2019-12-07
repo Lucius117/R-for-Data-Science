@@ -6,7 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
 library(sf)
 library(raster)
 library(mlr)
@@ -19,7 +23,7 @@ data("landslides", package = "RSAGA")
 ```
 
 ```{r}
-class(landslides)
+landslides
 ```
 
 ```{r}
@@ -29,11 +33,14 @@ summary(landslides)
 ```{r}
 # select non-landslide points
 non_pts = filter(landslides, lslpts == FALSE)
+
 # select landslide points
 lsl_pts = filter(landslides, lslpts == TRUE)
+
 # randomly select 175 non-landslide points
 set.seed(11042018)
 non_pts_sub = sample_n(non_pts, size = nrow(lsl_pts))
+
 # create smaller landslide dataset (lsl)
 lsl = bind_rows(non_pts_sub, lsl_pts)
 ```
@@ -64,6 +71,7 @@ lsl
 
 ```{r}
 ta
+plot(ta)
 ```
 
 # Conventional modeling approach in R
@@ -105,24 +113,26 @@ pROC::auc(pROC::roc(lsl$lslpts, fitted(fit)))
 
 ```{r}
 library(mlr)
+
 # coordinates needed for the spatial partitioning
 coords = lsl[, c("x", "y")]
+
 # select response and predictors to use in the modeling
 data = dplyr::select(lsl, -x, -y)
+
 # create task
 task = makeClassifTask(data = data, 
                        target = "lslpts",
                        # indicate the landslide initiation point
                        positive = "TRUE", 
                        # for spatial CV
-                       coordinates = coords
-                       )
+                       coordinates = coords)
 
 getTaskFormula(task)
 ```
 
 ```{r}
-listLearners(task, warn.missing.packages = FALSE) %>%
+listLearners(task, warn.missing.packages = TRUE) %>%
   dplyr::select(class, name, short.name, package)
 ```
 
@@ -135,9 +145,6 @@ lrn = makeLearner(
   # predicted probability
   predict.type = "prob",
   fix.factors.prediction = TRUE)
-
-getLearnerPackages(lrn)
-# helpLearner(lrn)
 ```
 
 ```{r}
@@ -230,20 +237,20 @@ configureMlr(on.learner.error = "warn", on.error.dump = TRUE)
 ```{r}
 library(parallelMap)
 if (Sys.info()["sysname"] %in% c("Linux", "Darwin")) {
-parallelStart(mode = "multicore", 
-              # parallelize the hyperparameter tuning level
-              level = "mlr.tuneParams", 
-              # just use half of the available cores
-              cpus = round(parallel::detectCores() / 2),
-              mc.set.seed = TRUE)
-}
+parallelStart(
+  # use mclapply() in the background on a single machine in the case of a Unix-based operating system
+  mode = "multicore", 
+  # parallelize the hyperparameter tuning level
+  level = "mlr.tuneParams", 
+  # just use half of the available cores
+  cpus = round(parallel::detectCores() / 2),
+  # ensures that the randomly chosen hyperparameters during the tuning can be reproduced when running the code again
+    mc.set.seed = TRUE)}
 
 if (Sys.info()["sysname"] == "Windows") {
   parallelStartSocket(level = "mlr.tuneParams",
                       cpus =  round(parallel::detectCores() / 2))
 }
-
-# ?parallelGetRegisteredLevels
 ```
 
 ```{r}
