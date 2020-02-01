@@ -1,0 +1,215 @@
+---
+title: "Regression"
+author: "Xiaochi"
+date: "23/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# OLS regression
+
+## Simple linear regression
+
+```{r}
+women
+```
+
+```{r}
+fit <- lm(weight ~ height, data = women)
+summary(fit)
+```
+
+the regression coefficient 3.45 is significantly different from zero (p < 0.001) and indicates that there's an expected increase of 3.45 pounds of weight for every 1 inch increase in height.
+
+
+```{r}
+women$weight
+```
+
+```{r}
+fitted(fit)
+```
+
+```{r}
+residuals(fit)
+```
+
+```{r}
+plot(women$height, 
+     women$weight,
+     xlab = "Height (in inches)",
+     ylab = "Weight (in pounds)")
+abline(fit)
+```
+
+## Polynomial regression
+
+```{r}
+fit2 <- lm(weight ~ height + I(height^2), data = women)
+summary(fit2)
+```
+
+```{r}
+plot(women$height,women$weight,
+     xlab="Height (in inches)",
+     ylab="Weight (in lbs)")
+lines(women$height, fitted(fit2))
+```
+
+```{r}
+library(car)
+scatterplot(weight ~ height, 
+            data=women,
+            spread=FALSE, 
+            smoother.args=list(lty=2), 
+            pch=19,
+            main="Women Age 30-39",
+            xlab="Height (inches)",
+            ylab="Weight (lbs.)")
+```
+
+## Multiple linear regression
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+```
+
+```{r}
+cor(states)
+```
+
+```{r}
+library(car)
+scatterplotMatrix(states,main="Scatter Plot Matrix")
+```
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost,
+          data=states)
+
+summary(fit)
+```
+
+the regression coefficient for Illiteracy is 4.14, suggesting that an increase of 1% in illiteracy is associated with a 4.14% increase in the murder rate, controlling for population, income, and temperature.
+
+```{r}
+mtcars
+```
+
+```{r}
+fit <- lm(mpg ~ hp + wt + hp:wt, data = mtcars)
+summary(fit)
+```
+
+```{r}
+library(effects)
+plot(effect("hp:wt", fit, , list(wt = c(2.2, 3.2, 4.2))), multiline=TRUE)
+```
+
+# Regression diagnostics
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+```
+
+
+```{r}
+confint(fit)
+```
+
+The results suggest that you can be 95% confident that the interval [2.38, 5.90] contains the true change in murder rate for a 1% change in illiteracy rate. Additionally, because the confidence interval for Frost contains 0, you can conclude that a change in temperature is unrelated to murder rate, holding the other variables constant.
+
+## A typical approach
+
+```{r}
+fit <- lm(weight ~ height, data=women)
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+```{r}
+fit2 <- lm(weight ~ height + I(height^2), data=women)
+par(mfrow=c(2,2))
+plot(fit2)
+```
+
+```{r}
+newfit <- lm(weight~ height + I(height^2), data=women[-c(13,15),])
+```
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+## An enhanced approach
+
+```{r}
+library(car)
+
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+
+qqPlot(fit, 
+       labels=row.names(states), 
+       id.method="identify",
+       simulate=TRUE, 
+       main="Q-Q Plot")
+```
+
+```{r}
+states["Nevada",]
+```
+
+```{r}
+fitted(fit)["Nevada"]
+```
+
+```{r}
+residuals(fit)["Nevada"]
+```
+
+```{r}
+rstudent(fit)["Nevada"]
+```
+
+```{r}
+residplot <- function(fit, nbreaks=10) {
+        z <- rstudent(fit)
+        hist(z, breaks=nbreaks, 
+             freq=FALSE,
+             xlab="Studentized Residual",
+             main="Distribution of Errors")
+        rug(jitter(z), 
+            col="brown")
+        curve(dnorm(x, mean=mean(z), sd=sd(z)),
+              add=TRUE, 
+              col="blue", 
+              lwd=2)
+        lines(density(z)$x, 
+              density(z)$y,
+              col="red", 
+              lwd=2, 
+              lty=2)
+        legend("topright",
+               legend = c( "Normal Curve", "Kernel Density Curve"),
+               lty=1:2, 
+               col=c("blue","red"), 
+               cex=.7)
+}
+
+residplot(fit)
+```
+

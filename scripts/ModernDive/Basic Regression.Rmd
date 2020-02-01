@@ -1,0 +1,377 @@
+---
+title: "Basic Regression"
+author: "Xiaochi"
+date: "06/01/2020"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(tidyverse)
+library(moderndive)
+library(skimr)
+library(gapminder)
+```
+
+
+
+
+## One numerical explanatory variable
+
+### Exploratory data analysis
+
+Here are three common steps in an EDA:
+
+1. Most crucially, looking at the raw data values.
+2. Computing summary statistics, such as means, medians, and interquartile ranges.
+3. Creating data visualizations.
+
+```{r}
+evals_ch5 <- evals %>%
+  select(ID, score, bty_avg, age)
+```
+
+```{r}
+evals_ch5 %>%
+  summarize(mean_bty_avg = mean(bty_avg), 
+            mean_score = mean(score),
+            median_bty_avg = median(bty_avg), 
+            median_score = median(score))
+```
+
+```{r}
+evals_ch5 %>% 
+  select(score, bty_avg) %>% 
+  skim()
+```
+
+```{r}
+evals_ch5 %>% 
+  get_correlation(formula = score ~ bty_avg)
+```
+
+```{r}
+evals_ch5 %>% 
+  summarize(correlation = cor(score, bty_avg))
+```
+
+the correlation coefficient of 0.187 indicates that the relationship between teaching evaluation score and “beauty” average is “weakly positive.”
+
+```{r}
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", 
+       y = "Teaching Score",
+       title = "Scatterplot of relationship of teaching and beauty scores")
+```
+
+Observe that most “beauty” scores lie between 2 and 8, while most teaching scores lie between 3 and 5. 
+Furthermore, while opinions may vary, it is our opinion that the relationship between teaching score and “beauty” score is “weakly positive.” 
+This is consistent with our earlier computed correlation coefficient of 0.187.
+
+```{r}
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  labs(x = "Beauty Score", 
+       y = "Teaching Score",
+       title = "Scatterplot of relationship of teaching and beauty scores")
+```
+
+```{r}
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", 
+       y = "Teaching Score",
+       title = "Relationship between teaching and beauty scores") +  
+  geom_smooth(method = "lm", se = FALSE) 
+```
+
+The positive slope of the blue line is consistent with our earlier observed correlation coefficient of 0.187 suggesting that there is a positive relationship between these two variables: as instructors have higher “beauty” scores, so also do they receive higher teaching evaluations.
+
+While the correlation coefficient and the slope of a regression line always have the same sign (positive or negative), they typically do not have the same value.
+
+
+```{r}
+evals_ch5
+```
+
+```{r}
+evals_ch5 %>%
+  select(score, age) %>%
+  skim()
+```
+
+```{r}
+ggplot(evals_ch5, aes(x = age, y = score)) +
+  geom_point() +
+  labs(x = "Age", 
+       y = "Teaching Score",
+       title = "Scatterplot of relationship of teaching score and age")
+```
+
+Based on the scatterplot visualization, there seem to have a weak negative relationship between age and teaching score. 
+As age increases, the teaching score see, to decrease slightly.
+
+
+### Simple linear regression
+
+$$\hat{y}=b_0+b_1x$$
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+The correlation’s interpretation is the “strength of linear association”.
+
+The slope’s interpretation:
+
+> For every increase of 1 unit in bty_avg, there is an associated increase of, on average, 0.067 units of score.
+
+We only state that there is an _associated_ increase and not necessarily a causal increase.
+In other words, just because two variables are strongly associated, it doesn’t necessarily mean that one causes the other. 
+This is summed up in the often quoted phrase, “correlation is not necessarily causation.” 
+
+we say that this associated increase is _on average_ 0.067 units of teaching score, because you might have two instructors whose bty_avg scores differ by 1 unit, but their difference in teaching scores won’t necessarily be exactly 0.067. 
+What the slope of 0.067 is saying is that across all possible courses, the average difference in teaching score between two instructors whose “beauty” scores differ by one is 0.067.
+
+
+```{r}
+# Fit regression model:
+score_age_model <- lm(score ~ age, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_age_model)
+```
+
+For every increase of 1 unit in age, there is an associated decrease of, on average, 0.006 units of score. 
+It matches with the results from our earlier exploratory data analysis.
+
+### Observed/fitted values and residuals
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+```{r}
+regression_points <- get_regression_points(score_model)
+regression_points
+```
+
+## One categorical explanatory variable
+
+### Exploratory data analysis
+
+```{r}
+library(gapminder)
+gapminder2007 <- gapminder %>%
+  filter(year == 2007) %>%
+  select(country, lifeExp, continent, gdpPercap)
+```
+
+```{r}
+gapminder2007 %>%
+  select(lifeExp, continent) %>%
+  skim()
+```
+
+Turning our attention to the summary statistics of the numerical variable lifeExp, we observe that the global median life expectancy in 2007 was 71.94. 
+Thus, half of the world’s countries (71 countries) had a life expectancy less than 71.94. 
+The mean life expectancy of 67.01 is lower, however. 
+Why is the mean life expectancy lower than the median?
+
+```{r}
+ggplot(gapminder2007, aes(x = lifeExp)) +
+  geom_histogram(binwidth = 5, color = "white") +
+  labs(x = "Life expectancy", 
+       y = "Number of countries",
+       title = "Histogram of distribution of worldwide life expectancies")
+```
+
+We see that this data is left-skewed, also known as negatively skewed: there are a few countries with low life expectancy that are bringing down the mean life expectancy. 
+However, the median is less sensitive to the effects of such outliers; hence, the median is greater than the mean in this case.
+
+```{r}
+ggplot(gapminder2007, aes(x = lifeExp)) +
+  geom_histogram(binwidth = 5, color = "white") +
+  labs(x = "Life expectancy", 
+       y = "Number of countries",
+       title = "Histogram of distribution of worldwide life expectancies") +
+  facet_wrap(~ continent, nrow = 2)
+```
+
+Observe that unfortunately the distribution of African life expectancies is much lower than the other continents, while in Europe life expectancies tend to be higher and furthermore do not vary as much. 
+On the other hand, both Asia and Africa have the most variation in life expectancies.
+There is the least variation in Oceania, but keep in mind that there are only two countries in Oceania: Australia and New Zealand.
+
+```{r}
+ggplot(gapminder2007, aes(x = continent, y = lifeExp)) +
+  geom_boxplot() +
+  labs(x = "Continent", 
+       y = "Life expectancy",
+       title = "Life expectancy by continent")
+```
+
+```{r}
+lifeExp_by_continent <- gapminder2007 %>%
+  group_by(continent) %>%
+  summarize(median = median(lifeExp), 
+            mean = mean(lifeExp))
+lifeExp_by_continent
+```
+
+Observe the order of the second column median life expectancy: Africa is lowest, the Americas and Asia are next with similar medians, then Europe, then Oceania. 
+This ordering corresponds to the ordering of the solid black lines inside the boxes in our side-by-side boxplot in Figure 5.9.
+
+```{r}
+gapminder2007
+```
+
+```{r}
+gapminder2007 %>%
+  select(gdpPercap, continent) %>%
+  skim()
+```
+
+```{r}
+ggplot(gapminder2007, aes(x = continent, y = gdpPercap)) +
+  geom_boxplot() +
+  labs(x = "Continent", 
+       y = "GPD per capita",
+       title = "GDP by continent")
+```
+
+Based on this exploration, it seems that GDP’s are very different among different continents, which means that continent might be a statistically significant predictor for an area’s GDP.
+
+### Linear regression
+
+Our model will not yield a “best-fitting” regression line like in Figure 5.4, but rather offsets relative to a baseline for comparison
+
+```{r}
+lifeExp_by_continent <- gapminder2007 %>%
+  group_by(continent) %>%
+  summarize(median = median(lifeExp), 
+            mean = mean(lifeExp))
+lifeExp_by_continent
+```
+
+```{r}
+lifeExp_model <- lm(lifeExp ~ continent, data = gapminder2007)
+get_regression_table(lifeExp_model)
+```
+
+To summarize, the 5 values in the estimate column in Table 5.8 correspond to the “baseline for comparison” continent Africa (the intercept) as well as four “offsets” from this baseline for the remaining 4 continents: the Americas, Asia, Europe, and Oceania.
+
+If we fit a linear regression model using a categorical explanatory variable x  that has k  possible categories, the regression table will return an intercept and k−1 offsets.
+In our case, since there are k=5  continents, the regression model returns an intercept corresponding to the baseline for comparison group of Africa and k−1=4 offsets corresponding to the Americas, Asia, Europe, and Oceania.
+
+```{r}
+# Fit regression model:
+gdp_model <- lm(gdpPercap ~ continent, data = gapminder2007)
+# Get regression table:
+get_regression_table(gdp_model)
+```
+
+In our previous exploratory data analysis, it seemed that continent is a statistically significant predictor for an area’s GDP. 
+Here, by fit a new linear regression using lm(gdpPercap ~ continent, data = gapminder2007) where gdpPercap is the new outcome variable  
+y, we are able to write an equation to predict gdpPercap using the continent as statistically significant predictors. 
+Therefore, the regression results matches with the results from your previous exploratory data analysis.
+
+### Observed/fitted values and residuals
+
+```{r}
+lifeExp_model <- lm(lifeExp ~ continent, data = gapminder2007)
+get_regression_table(lifeExp_model)
+```
+
+```{r}
+regression_points <- get_regression_points(lifeExp_model, ID = "country")
+regression_points
+```
+
+Using the sorting functionality of RStudio’s spreadsheet viewer, we can identify that the five countries with the five smallest (most negative) residuals are: Afghanistan, Swaziland, Mozambique, Haiti, and Zambia.
+These negative residuals indicate that these data points have the biggest negative deviations from their group means. 
+This means that these five countries’ average life expectancies are the lowest comparing to their respective continents’ average life expectancies. 
+For example, the residual for Afghanistan is −26.900 and it is the smallest residual. 
+This means that the average life expectancy of Afghanistan is  
+26.900 years lower than the average life expectancy of its continent, Asia.
+
+Using either the sorting functionality of RStudio’s spreadsheet viewer, we can identify that the five countries with the five largest (most positive) residuals are: Reunion, Libya, Tunisia, Mauritius, and Algeria.
+These positive residuals indicate that the data points are above the regression line with the longest distance.
+This means that these five countries’ average life expectancies are the highest comparing to their respective continents’ average life expectancies.
+For example, the residual for Reunion is 21.636 and it is the largest residual.
+This means that the average life expectancy of Reunion is  
+21.636 years higher than the average life expectancy of its continent, Africa.
+
+## Related topics
+
+### Correlation is not necessarily causation
+
+### Best-fitting line
+
+We call this quantity the __sum of squared residuals__; it is a measure of the lack of fit of a model. 
+Larger values of the sum of squared residuals indicate a bigger lack of fit. 
+This corresponds to a worse fitting model.
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+
+# Get regression points:
+regression_points <- get_regression_points(score_model)
+regression_points
+```
+
+```{r}
+# Compute sum of squared residuals
+regression_points %>%
+  mutate(squared_residuals = residual^2) %>%
+  summarize(sum_of_squared_residuals = sum(squared_residuals))
+```
+
+Any other straight line drawn in the figure would yield a sum of squared residuals greater than 132.
+
+### get_regression_x() functions
+
+1. get_regression_table() returns a regression table
+2. get_regression_points() returns point-by-point information from a regression model.
+
+```{r}
+# Fit regression model:
+score_model <- lm(formula = score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+```{r}
+library(broom)
+library(janitor)
+```
+
+
+```{r}
+score_model %>%
+  tidy(conf.int = TRUE) %>%
+  mutate_if(is.numeric, round, digits = 3) %>%
+  clean_names() %>%
+  rename(lower_ci = conf_low, upper_ci = conf_high)
+```
+
+```{r}
+score_model %>%
+  augment() %>%
+  mutate_if(is.numeric, round, digits = 3) %>%
+  clean_names() %>%
+  select(-c("se_fit", "hat", "sigma", "cooksd", "std_resid"))
+```
+

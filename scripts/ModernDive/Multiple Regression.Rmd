@@ -1,0 +1,369 @@
+---
+title: "Multiple Regression"
+author: "Xiaochi"
+date: "07/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(tidyverse)
+library(moderndive)
+library(skimr)
+library(ISLR)
+```
+
+## One numerical and one categorical explanatory variable
+
+Could it be that instructors who are older receive better teaching evaluations from students?
+Or could it instead be that younger instructors receive better evaluations?
+Are there differences in evaluations given by students for instructors of different genders?
+
+### Exploratory data analysis
+
+Recall the three common steps in an exploratory data analysis we saw in Subsection 5.1.1:
+
+1. Looking at the raw data values.
+2. Computing summary statistics.
+3. Creating data visualizations.
+
+```{r}
+evals_ch6 <- evals %>%
+  select(ID, score, age, gender)
+```
+
+```{r}
+evals_ch6 %>% 
+  select(score, age, gender) %>% 
+   skim()
+```
+
+Observe that we have no missing data, that there are 268 courses taught by male instructors and 195 courses taught by female instructors, and that the average instructor age is 48.37. 
+
+```{r}
+evals_ch6 %>% 
+  get_correlation(formula = score ~ age)
+```
+
+```{r}
+ggplot(evals_ch6, aes(x = age, y = score, color = gender)) +
+  geom_point() +
+  labs(x = "Age", 
+       y = "Teaching Score", 
+       color = "Gender") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+First, there are almost no women faculty over the age of 60 as evidenced by lack of red dots above x = 60.
+Second, while both regression lines are negatively sloped with age (i.e., older instructors tend to have lower scores), the slope for age for the female instructors is more negative.
+ In other words, female instructors are paying a harsher penalty for advanced age than the male instructors.
+ 
+### Interaction model
+
+```{r}
+# Fit regression model:
+score_model_interaction <- lm(score ~ age * gender, data = evals_ch6)
+
+# Get regression table:
+get_regression_table(score_model_interaction)
+```
+
+First, since the word female comes alphabetically before male, female instructors are the “baseline for comparison” group.
+Thus, intercept is the intercept for only the female instructors.
+
+This holds similarly for age. 
+It is the slope for age for only the female instructors.
+Since the slope for age for the female instructors was -0.018, it means that on average, a female instructor who is a year older would have a teaching score that is 0.018 units lower.
+
+The value for gendermale of -0.446 is not the intercept for the male instructors, but rather the offset in intercept for male instructors relative to female instructors.
+The intercept for the male instructors is intercept + gendermale = 4.883 + (-0.446) = 4.883 - 0.446 = 4.437.
+
+Similarly, age:gendermale = 0.014 is not the slope for age for the male instructors, but rather the offset in slope for the male instructors. Therefore, the slope for age for the male instructors is age + age:gendermale = −0.018 + 0.014 = −0.004.
+For the male instructors, however, the corresponding associated decrease was on average only 0.004 units.
+
+We say there is an interaction effect if the associated effect of one variable depends on the value of another variable. 
+That is to say, the two variables are “interacting” with each other.
+Here, the associated effect of the variable age depends on the value of the other variable gender.
+The difference in slopes for age of +0.014 of male instructors relative to female instructors shows this.
+
+Another way of thinking about interaction effects on teaching scores is as follows.
+For a given instructor at UT Austin, there might be an associated effect of their age by itself, there might be an associated effect of their gender by itself, but when age and gender are considered together there might be an additional effect above and beyond the two individual effects.
+
+### Parallel slopes model
+
+Unlike interaction models where the regression lines can have different intercepts and different slopes, parallel slopes models still allow for different intercepts but force all lines to have the same slope.
+
+```{r}
+ggplot(evals_ch6, aes(x = age, y = score, color = gender)) +
+  geom_point() +
+  labs(x = "Age",
+       y = "Teaching Score", 
+       color = "Gender") +
+  geom_parallel_slopes(se = FALSE)
+```
+
+Observe in Figure 6.2 that we now have parallel lines corresponding to the female and male instructors, respectively: here they have the same negative slope.
+This is telling us that instructors who are older will tend to receive lower teaching scores than instructors who are younger.
+Furthermore, since the lines are parallel, the associated penalty for being older is assumed to be the same for both female and male instructors.
+
+However, observe also in Figure 6.2 that these two lines have different intercepts as evidenced by the fact that the blue line corresponding to the male instructors is higher than the red line corresponding to the female instructors.
+This is telling us that irrespective of age, female instructors tended to receive lower teaching scores than male instructors.
+
+```{r}
+# Fit regression model:
+score_model_parallel_slopes <- lm(score ~ age + gender, data = evals_ch6)
+# Get regression table:
+get_regression_table(score_model_parallel_slopes)
+```
+
+Similarly to the regression table for the interaction model from Table 6.3, we have an intercept term corresponding to the intercept for the “baseline for comparison” female instructor group and a gendermale term corresponding to the offset in intercept for the male instructors relative to female instructors.
+In other words, in Figure 6.2 the red regression line corresponding to the female instructors has an intercept of 4.484 while the blue regression line corresponding to the male instructors has an intercept of 4.484 + 0.191 = 4.675.
+
+Unlike in Table 6.3, however, we now only have a single slope for age of -0.009.
+This is because the model dictates that both the female and male instructors have a common slope for age.
+This is telling us that an instructor who is a year older than another instructor received a teaching score that is on average 0.009 units lower.
+This penalty for being of advanced age applies equally to both female and male instructors.
+
+### Observed/fitted values and residuals
+
+```{r}
+# Fit regression model:
+score_model_interaction <- lm(score ~ age * gender, data = evals_ch6)
+
+# Get regression table:
+get_regression_table(score_model_interaction)
+```
+
+```{r}
+regression_points <- get_regression_points(score_model_interaction)
+regression_points
+```
+
+```{r}
+# Fit regression model:
+score_model_parallel_slopes <- lm(score ~ age + gender, data = evals_ch6)
+# Get regression table:
+get_regression_table(score_model_parallel_slopes)
+```
+
+```{r}
+regression_points_parallel <- get_regression_points(score_model_parallel_slopes)
+regression_points_parallel
+```
+
+## Two numerical explanatory variables
+
+### Exploratory data analysis
+
+```{r}
+library(ISLR)
+credit_ch6 <- Credit %>% 
+  as_tibble() %>% 
+  select(ID, 
+         debt = Balance, 
+         credit_limit = Limit, 
+         income = Income, 
+         credit_rating = Rating, 
+         age = Age)
+```
+
+```{r}
+credit_ch6 %>% 
+  select(debt, credit_limit, income) %>% 
+  skim()
+```
+
+Observe the summary statistics for the outcome variable debt: the mean and median credit card debt are \$520.01 and \$459.50, respectively, and that 25% of card holders had debts of \$68.75 or less.
+Let’s now look at one of the explanatory variables credit_limit: the mean and median credit card limit are \$4735.6 and \$4622.50, respectively, while 75% of card holders had incomes of \$57,470 or less.
+
+```{r}
+credit_ch6 %>% get_correlation(debt ~ credit_limit)
+credit_ch6 %>% get_correlation(debt ~ income)
+```
+
+```{r}
+credit_ch6 %>% 
+  select(debt, credit_limit, income) %>% 
+  cor()
+```
+
+For example, the correlation coefficient of:
+
+1. debt with itself is 1 as we would expect based on the definition of the correlation coefficient.
+2. debt with credit_limit is 0.862. This indicates a strong positive linear relationship, which makes sense as only individuals with large credit limits can accrue large credit card debts.
+3. debt with income is 0.464. This is suggestive of another positive linear relationship, although not as strong as the relationship between debt and credit_limit.
+4. As an added bonus, we can read off the correlation coefficient between the two explanatory variables of credit_limit and income as 0.792.
+
+there is a high degree of collinearity between the credit_limit and income explanatory variables.
+So in our case since credit_limit and income are highly correlated, if we knew someone’s credit_limit, we could make pretty good guesses about their income as well.
+Thus, these two variables provide somewhat redundant information.
+
+
+```{r}
+ggplot(credit_ch6, aes(x = credit_limit, y = debt)) +
+  geom_point() +
+  labs(x = "Credit limit (in $)", 
+       y = "Credit card debt (in $)", 
+       title = "Debt and credit limit") +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(credit_ch6, aes(x = income, y = debt)) +
+  geom_point() +
+  labs(x = "Income (in $1000)", 
+       y = "Credit card debt (in $)", 
+       title = "Debt and income") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Observe there is a positive relationship between credit limit and credit card debt: as credit limit increases so also does credit card debt.
+This is consistent with the strongly positive correlation coefficient of 0.862 we computed earlier.
+In the case of income, the positive relationship doesn’t appear as strong, given the weakly positive correlation coefficient of 0.464.
+
+```{r}
+credit_ch6 %>% 
+  select(debt, credit_rating, age)
+```
+
+```{r}
+credit_ch6 %>% 
+  select(debt, credit_rating, age) %>% 
+  skim()
+```
+
+```{r}
+ggplot(credit_ch6, aes(x = credit_rating, y = debt)) +
+  geom_point() +
+  labs(x = "Credit rating", 
+       y = "Credit card debt (in $)", 
+       title = "Debt and credit rating") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+ggplot(credit_ch6, aes(x = age, y = debt)) +
+  geom_point() +
+  labs(x = "Age (in year)", 
+       y = "Credit card debt (in $)", 
+       title = "Debt and age") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+It seems that there is a positive relationship between one’s credit rating and their debt, and a slight negative between one’s age and their debt.
+
+### Regression plane
+
+```{r}
+# Fit regression model:
+debt_model <- lm(debt ~ credit_limit + income, data = credit_ch6)
+# Get regression table:
+get_regression_table(debt_model)
+```
+
+First, the intercept value is -\$385.179. This intercept represents the credit card debt for an individual who has credit_limit of \$0 and income of \$0.
+
+Second, the credit_limit value is $0.264.
+Taking into account all the other explanatory variables in our model, for every increase of one dollar in credit_limit, there is an associated increase of on average $0.26 in credit card debt.
+Furthermore, we preface our interpretation with the statement, “taking into account all the other explanatory variables in our model.” 
+Here, by all other explanatory variables we mean income. 
+We do this to emphasize that we are now jointly interpreting the associated effect of multiple explanatory variables in the same model at the same time.
+
+Third, income = -\$7.66. 
+Taking into account all other explanatory variables in our model, for every increase of one unit of income (\$1000 in actual income), there is an associated decrease of, on average, \$7.66 in credit card debt.
+
+When plotting the relationship between debt and income in isolation, there appeared to be a positive relationship.
+When jointly modeling the relationship between debt, credit_limit, and income, there appears to be a negative relationship of debt and income. 
+A phenomenon known as Simpson’s Paradox, whereby overall trends that exist in aggregate either disappear or reverse when the data are broken down into groups.
+
+```{r}
+# Fit regression model:
+debt_model_2 <- lm(debt ~ credit_rating + age, data = credit_ch6)
+# Get regression table:
+get_regression_table(debt_model_2)
+```
+
+### Observed/fitted values and residuals
+
+```{r}
+get_regression_points(debt_model)
+```
+
+## Related topics
+
+### Model selection
+
+```{r}
+# Interaction model
+ggplot(MA_schools, 
+       aes(x = perc_disadvan, y = average_sat_math, color = size)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent economically disadvantaged", 
+       y = "Math SAT Score", 
+       color = "School size", 
+       title = "Interaction model")
+```
+
+While the slopes are indeed different, they do not differ by much and are nearly identical.
+
+```{r}
+# Parallel slopes model
+ggplot(MA_schools, 
+       aes(x = perc_disadvan, y = average_sat_math, color = size)) +
+  geom_point(alpha = 0.25) +
+  geom_parallel_slopes(se = FALSE) +
+  labs(x = "Percent economically disadvantaged", 
+       y = "Math SAT Score", 
+       color = "School size", 
+       title = "Parallel slopes model")
+```
+
+Now compare the left-hand plot with the right-hand plot corresponding to a parallel slopes model. 
+The two models don’t appear all that different.
+So in this case, it can be argued that the additional complexity of the interaction model is not warranted. 
+
+Thus following Occam’s Razor, we should prefer the “simpler” parallel slopes model.
+These results are suggesting that irrespective of school size, the relationship between average math SAT scores and the percent of the student body that is economically disadvantaged is similar and, alas, quite negative.
+
+
+```{r}
+model_2_interaction <- lm(average_sat_math ~ perc_disadvan * size, 
+                          data = MA_schools)
+get_regression_table(model_2_interaction)
+```
+
+note in table how the offsets for the slopes perc_disadvan:sizemedium being 0.146 and perc_disadvan:sizelarge being 0.189 are small relative to the slope for the baseline group of small schools of −2.932.
+In other words, all three slopes are similarly negative.
+These results are suggesting that irrespective of school size, the relationship between average math SAT scores and the percent of the student body that is economically disadvantaged is similar and, alas, quite negative.
+
+
+```{r}
+model_2_parallel_slopes <- lm(average_sat_math ~ perc_disadvan + size, 
+                              data = MA_schools)
+get_regression_table(model_2_parallel_slopes)
+```
+
+### Correlation coefficient
+
+```{r}
+credit_ch6 %>% 
+  select(debt, income) %>% 
+  mutate(income = income * 1000) %>% 
+  cor()
+```
+
+The correlation coefficient is invariant to linear transformations.
+The correlation between $x$ and $y$ will be the same as the correlation between $ax+b$ and $y$ for any numerical values $a$ and $b$.
+
+### Simpson’s Paradox
+
+On the one hand, the right hand plot of Figure 6.5 suggested that the relationship between credit card debt and income was positive.
+On the other hand, the multiple regression results in Table 6.10 suggested that the relationship between debt and income was negative.
+In other words, while in isolation, the relationship between debt and income may be positive, when taking into account credit_limit as well, this relationship becomes negative.
+
+Simpson’s Paradox occurs when trends that exist for the data in aggregate either disappear or reverse when the data are broken down into groups.
+
+

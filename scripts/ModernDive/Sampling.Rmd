@@ -1,0 +1,376 @@
+---
+title: "Sampling"
+author: "Xiaochi"
+date: "08/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(moderndive)
+```
+
+
+## Sampling bowl activity
+
+### What proportion of this bowl’s balls are red?
+
+### Using the shovel once
+
+### Using the shovel 33 times
+
+```{r}
+tactile_prop_red
+```
+
+each row can be viewed as one instance of a replicated (in other words repeated) activity: using the shovel to remove 50 balls and computing the proportion of those balls that are red.
+
+```{r}
+ggplot(tactile_prop_red, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.2,color = "white") +
+  labs(x = "Proportion of 50 balls that were red", 
+       title = "Distribution of 33 proportions red")
+```
+
+### What did we just do?
+
+What we just demonstrated in this activity is the statistical concept of _sampling_. 
+We would like to know the proportion of the bowl’s balls that are red.
+Because the bowl has a large number of balls, performing an exhaustive count of the red and white balls would be time-consuming.
+We thus extracted a sample of 50 balls using the shovel to make an estimate.
+Using this sample of 50 balls, we estimated the proportion of the bowl’s balls that are red to be 34%.
+
+1. Because we mixed the balls before each use of the shovel, the samples were randomly drawn.
+2. Because each sample was drawn at random, the samples were different from each other. 
+3. Because the samples were different from each other, we obtained the different proportions red observed.
+This is known as the concept of _sampling variation_.
+
+
+## Virtual sampling
+
+### Using the virtual shovel once
+
+```{r}
+bowl
+```
+
+```{r}
+virtual_shovel <- bowl %>% 
+  rep_sample_n(size = 50)
+virtual_shovel
+```
+
+```{r}
+virtual_shovel %>% 
+  mutate(is_red = (color == "red"))
+```
+
+```{r}
+virtual_shovel %>% 
+  mutate(is_red = (color == "red")) %>% 
+  summarize(num_red = sum(is_red))
+```
+
+```{r}
+virtual_shovel %>% 
+  mutate(is_red = color == "red") %>% 
+  summarize(num_red = sum(is_red)) %>% 
+  mutate(prop_red = num_red / 50)
+```
+
+```{r}
+virtual_shovel %>% 
+  summarize(num_red = sum(color == "red")) %>% 
+  mutate(prop_red = num_red / 50)
+```
+
+### Using the virtual shovel 33 times
+
+```{r}
+virtual_samples <- bowl %>% 
+  rep_sample_n(size = 50, reps = 33)
+virtual_samples
+View(virtual_samples)
+```
+
+```{r}
+50 * 33
+```
+
+```{r}
+virtual_prop_red <- virtual_samples %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 50)
+virtual_prop_red
+```
+
+```{r}
+ggplot(virtual_prop_red, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 50 balls that were red", 
+       title = "Distribution of 33 proportions red") 
+```
+
+Observe that we occasionally obtained proportions red that are less than 30%. 
+On the other hand, we occasionally obtained proportions that are greater than 45%.
+However, the most frequently occurring proportions were between 35% and 40% (for 11 out of 33 samples).
+Why do we have these differences in proportions red? Because of _sampling variation_.
+
+### Using the virtual shovel 1000 times
+
+```{r}
+virtual_samples <- bowl %>% 
+  rep_sample_n(size = 50, reps = 10000)
+virtual_samples
+```
+
+```{r}
+virtual_prop_red <- virtual_samples %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 50)
+virtual_prop_red
+```
+
+```{r}
+ggplot(virtual_prop_red, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 50 balls that were red", 
+       title = "Distribution of 10,000 proportions red")
+```
+
+Once again, the most frequently occurring proportions of red balls occur between 35% and 40%.
+Every now and then, we obtain proportions as low as between 20% and 25%, and others as high as between 55% and 60%.
+These are rare, however.
+Furthermore, observe that we now have a much more symmetric and smoother bell-shaped distribution.
+This distribution is, in fact, approximated well by a normal distribution.
+
+### Using different shovels
+
+```{r}
+# Segment 1: sample size = 25 ------------------------------
+# 1.a) Virtually use shovel 1000 times
+virtual_samples_25 <- bowl %>% 
+  rep_sample_n(size = 25, reps = 10000)
+
+# 1.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_25 <- virtual_samples_25 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 25)
+
+# 1.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_25, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 25 balls that were red", title = "25")
+```
+
+```{r}
+# Segment 2: sample size = 50 ------------------------------
+# 2.a) Virtually use shovel 1000 times
+virtual_samples_50 <- bowl %>% 
+  rep_sample_n(size = 50, reps = 10000)
+
+# 2.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_50 <- virtual_samples_50 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 50)
+
+# 2.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_50, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 50 balls that were red", title = "50")  
+```
+
+
+```{r}
+# Segment 3: sample size = 100 ------------------------------
+# 3.a) Virtually using shovel with 100 slots 1000 times
+virtual_samples_100 <- bowl %>% 
+  rep_sample_n(size = 100, reps = 10000)
+
+
+# 3.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_100 <- virtual_samples_100 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 100)
+
+# 3.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_100, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 100 balls that were red", title = "100") 
+```
+
+Observe that as the sample size increases, the variation of the 1000 replicates of the proportion of red decreases.
+In other words, as the sample size increases, there are fewer differences due to sampling variation and the distribution centers more tightly around the same value
+
+```{r}
+# n = 25
+virtual_prop_red_25 %>% 
+  summarize(sd = sd(prop_red))
+
+# n = 50
+virtual_prop_red_50 %>% 
+  summarize(sd = sd(prop_red))
+
+# n = 100
+virtual_prop_red_100 %>% 
+  summarize(sd = sd(prop_red))
+```
+
+
+
+## Sampling framework
+
+we used sampling for the purpose of estimation.
+We extracted samples in order to estimate the proportion of the bowl’s balls that are red.
+We used sampling as a less time-consuming approach than performing an exhaustive count of all the balls.
+
+### Terminology and notation
+
+First, a __population__ is a collection of individuals or observations we are interested in.
+This is also commonly denoted as a study population. We mathematically denote the population’s size using upper-case $N$.
+In our sampling activities, the (study) population is the collection of $N=2400$ identically sized red and white balls contained in the bowl.
+
+Second, a __population parameter__ is a numerical summary quantity about the population that is unknown, but you wish you knew.
+For example, when this quantity is a mean, the population parameter of interest is the _population mean_.
+This is mathematically denoted with the Greek letter $\mu$ pronounced “mu”.
+In our earlier sampling from the bowl activity, however, since we were interested in the proportion of the bowl’s balls that were red, the population parameter is the _population proportion_.
+This is mathematically denoted with the letter $p$.
+
+Third, a __census__ is an exhaustive enumeration or counting of all $N$ individuals or observations in the population in order to compute the population parameter’s value exactly.
+In our sampling activity, this would correspond to counting the number of balls out of $N=2400$ that are red and computing the population proportion $p$ that are red exactly.
+When the number $N$ of individuals or observations in our population is large as was the case with our bowl, a census can be quite expensive in terms of time, energy, and money.
+
+Fourth, __sampling__ is the act of collecting a sample from the population when we don’t have the means to perform a census.
+We mathematically denote the sample’s size using lower case $n$, as opposed to upper case $N$ which denotes the population’s size.
+Typically the sample size $n$ is much smaller than the population size $N$.
+Thus sampling is a much cheaper alternative than performing a census.
+In our sampling activities, we used shovels with 25, 50, and 100 slots to extract samples of size $n=25$, $n=50$, and $n=100$.
+
+Fifth, a __point estimate__ ( __sample statistic__ ) is a summary statistic computed from a sample that estimates an unknown population parameter.
+In our sampling activities, recall that the unknown population parameter was the population proportion and that this is mathematically denoted with $p$.
+Our point estimate is the _sample proportion_: the proportion of the shovel’s balls that are red.
+In other words, it is our guess of the proportion of the bowl’s balls that are red.
+We mathematically denote the sample proportion using $\hat{p}$.
+The “hat” on top of the $p$ indicates that it is an estimate of the unknown population proportion $p$.
+
+Sixth is the idea of __representative sampling__. A sample is said to be a representative sample if it roughly looks like the population.
+In other words, are the sample’s characteristics a good representation of the population’s characteristics?
+In our sampling activity, are the samples of $n$ balls extracted using our shovels representative of the bowl’s $N=2400$ balls?
+
+Seventh is the idea of __generalizability__. We say a sample is generalizable if any results based on the sample can generalize to the population.
+In other words, does the value of the point estimate generalize to the population?
+In our sampling activity, can we generalize the sample proportion from our shovels to the entire bowl?
+Using our mathematical notation, this is akin to asking if $\hat{p}$ is a “good guess” of $p$?
+
+Eighth, we say __biased sampling__ occurs if certain individuals or observations in a population have a higher chance of being included in a sample than others.
+We say a __unbiased sampling__ if every observation in a population had an equal chance of being sampled.
+In our sampling activities, since we mixed all $N=2400$ balls prior to each group’s sampling, and since each of the equally sized balls had an equal chance of being sampled, our samples were unbiased.
+
+Ninth and lastly, the idea of __random sampling__. 
+We say a sampling procedure is _random_ if we sample randomly from the population in an unbiased fashion.
+In our sampling activities, this would correspond to sufficiently mixing the bowl before each use of the shovel.
+
+In general:
+
+* If the sampling of a sample of size $n$ is done at __random__, then
+* the sample is __unbiased__ and __representative__ of the population of size $N$, thus
+* any result based on the sample can __generalize__ to the population, thus
+* the __point estimate__ is a “good guess” of the unknown __population parameter__, thus
+* instead of performing a census, we can __infer__ about the population using sampling.
+
+The act of “inferring” means to deduce or conclude information from evidence and reasoning.
+In our sampling activities, we wanted to infer about the proportion of the bowl’s balls that are red.
+Statistical inference is the “theory, methods, and practice of forming __judgments__ about _the parameters of a population_ and _the reliability of statistical relationships_, typically on the basis of random sampling.”
+In other words, statistical inference is the act of inference via sampling.
+
+### Statistical definitions
+
+```{r}
+# Segment 1: sample size = 25 ------------------------------
+# 1.a) Virtually use shovel 1000 times
+virtual_samples_25 <- bowl %>% 
+  rep_sample_n(size = 25, reps = 1000)
+
+# 1.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_25 <- virtual_samples_25 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 25)
+
+# 1.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_25, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 25 balls that were red", title = "25") 
+
+
+# Segment 2: sample size = 50 ------------------------------
+# 2.a) Virtually use shovel 1000 times
+virtual_samples_50 <- bowl %>% 
+  rep_sample_n(size = 50, reps = 1000)
+
+# 2.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_50 <- virtual_samples_50 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 50)
+
+# 2.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_50, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 50 balls that were red", title = "50")  
+
+
+# Segment 3: sample size = 100 ------------------------------
+# 3.a) Virtually using shovel with 100 slots 1000 times
+virtual_samples_100 <- bowl %>% 
+  rep_sample_n(size = 100, reps = 1000)
+
+# 3.b) Compute resulting 1000 replicates of proportion red
+virtual_prop_red_100 <- virtual_samples_100 %>% 
+  group_by(replicate) %>% 
+  summarize(red = sum(color == "red")) %>% 
+  mutate(prop_red = red / 100)
+
+# 3.c) Plot distribution via a histogram
+ggplot(virtual_prop_red_100, aes(x = prop_red)) +
+  geom_histogram(binwidth = 0.05, boundary = 0.4, color = "white") +
+  labs(x = "Proportion of 100 balls that were red", title = "100") 
+```
+
+These types of distributions have a special name: __sampling distributions__; their visualization displays the effect of _sampling variation_ on _the distribution of any point estimate_, in this case, the sample proportion $\hat{p}$.
+Using these sampling distributions, for a given sample size $n$ , we can make statements about what values we can typically expect.
+
+Standard errors quantify the effect of _sampling variation induced_ on _our estimates_. 
+In other words, they quantify how much we can expect different proportions of a shovel’s balls that are red to vary from one sample to another sample to another sample, and so on. 
+As a general rule, as sample size increases, the standard error decreases.
+A standard error is merely a kind of standard deviation: the standard deviation of any point estimate from sampling.
+In other words, all standard errors are standard deviations, but not every standard deviation is necessarily a standard error.
+
+### The moral of the story
+
+If a sample is generated at random, then the resulting point estimate is a “good guess” of the true unknown population parameter.
+Sometimes, we’ll get an estimate that is less than the true value of the population parameter, while at other times we’ll get an estimate that is greater.
+This is due to sampling variation.
+However, despite this sampling variation, our estimates will “on average” be correct and thus will be centered at the true value. 
+This is because our sampling was done at random and thus in an unbiased fashion.
+
+```{r}
+bowl %>% 
+  summarize(sum_red = sum(color == "red"), 
+            sum_not_red = sum(color != "red"))
+```
+
+random sampling ensures our point estimates are accurate
+
+having a large sample size ensures our point estimates are precise. 
+
+
+## Case study: Polls
+
+

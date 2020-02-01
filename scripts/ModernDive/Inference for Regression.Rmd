@@ -1,0 +1,250 @@
+---
+title: "Inference for Regression"
+author: "Xiaochi"
+date: "13/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(tidyverse)
+library(moderndive)
+library(infer)
+```
+
+## Regression refresher
+
+###  Teaching evaluations analysis
+
+```{r}
+evals_ch5 <- evals %>%
+  select(ID, score, bty_avg, age)
+evals_ch5
+```
+
+We saw there that a weakly positive correlation of 0.187 existed between the two variables.
+This was evidenced in Figure 10.1 of the scatterplot along with the “best-fitting” regression line that summarizes the linear relationship between the two variables of score and bty_avg.
+
+```{r}
+ggplot(evals_ch5, 
+       aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", 
+       y = "Teaching Score",
+       title = "Relationship between teaching and beauty scores") +  
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Looking at this plot again, you might be asking, “Does that line really have all that positive of a slope?”.
+It does increase from left to right as the bty_avg variable increases, but by how much?
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+For every increase of one unit in “beauty” rating, there is an associated increase, on average, of 0.067 units of evaluation score.
+
+### Sampling scenario
+
+First, let’s view the instructors for these 463 courses as a representative sample from a greater study population.
+In our case, let’s assume that the study population is all instructors at UT Austin and that the sample of instructors who taught these 463 courses is a representative sample.
+
+Since we are now viewing our fitted slope $b_1$ and fitted intercept $b_0$ as point estimates based on a sample, these estimates will again be subject to sampling variability.
+In other words, if we collected a new sample of data on a different set of n = 463 courses and their instructors, the new fitted slope $b_1$ will likely differ from 0.067. 
+The same goes for the new fitted intercept $b_0$.
+But by how much will these estimates vary?
+
+## Interpreting regression tables
+
+### Standard error
+
+> The standard error is the standard deviation of any point estimate computed from a sample.
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+So what does this mean in terms of the fitted slope b1 = 0.067? 
+This value is just one possible value of the fitted slope resulting from this particular sample of n = 463 pairs of teaching and beauty scores.
+However, if we collected a different sample of n  = 463 pairs of teaching and beauty scores, we will almost certainly obtain a different fitted slope b1. 
+This is due to sampling variability.
+
+The standard error of $b_1$ similarly quantifies how much variation in the fitted slope $b_1$ one would expect between different samples.
+So in our case, we can expect about 0.016 units of variation in the bty_avg slope variable.
+
+### Test statistic
+
+> A hypothesis test consists of a test between two competing hypotheses: (1) a null hypothesis $H_0$ versus (2) an alternative hypothesis $H_A$.
+
+> A test statistic is a point estimate/sample statistic formula used for hypothesis testing.
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+we’ll assume a “hypothesized universe” where there is no relationship between teaching and “beauty” scores.
+In other words, we’ll assume the null hypothesis $H_0:\beta_1=0$ is true.
+
+The statistic column in the regression table is a tricky one, however. 
+It corresponds to a standardized t-test statistic.
+The null distribution can be mathematically proven to be a  
+tt -distribution.
+
+### p-value
+
+### Confidence interval
+
+### How does R compute the table?
+
+## Conditions for inference for regression
+
+### Residuals refresher
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression points:
+regression_points <- get_regression_points(score_model)
+regression_points
+```
+
+### Linearity of relationship
+
+### Independence of residuals
+
+```{r}
+evals %>% 
+  select(ID, prof_ID, score, bty_avg)
+```
+
+### Normality of residuals
+
+```{r}
+ggplot(regression_points, aes(x = residual)) +
+  geom_histogram(binwidth = 0.25, color = "white") +
+  labs(x = "Residual")
+```
+
+This histogram shows that we have more positive residuals than negative.
+
+### Equality of variance
+
+```{r}
+ggplot(regression_points, aes(x = bty_avg, y = residual)) +
+  geom_point() +
+  labs(x = "Beauty Score", y = "Residual") +
+  geom_hline(yintercept = 0, col = "blue", size = 1)
+```
+
+```{r}
+evals_ch5 <- evals %>%
+  select(ID, score, bty_avg, age)
+
+# Fit regression model:
+score_age_model <- lm(score ~ age, data = evals_ch5)
+# Get regression points:
+regression_points <- get_regression_points(score_age_model)
+regression_points
+```
+
+## Simulation-based inference for regression
+
+### Confidence interval for slope
+
+```{r}
+bootstrap_distn_slope <- evals_ch5 %>% 
+  specify(formula = score ~ bty_avg) %>%
+  generate(reps = 1000, type = "bootstrap") %>% 
+  calculate(stat = "slope")
+bootstrap_distn_slope
+```
+
+```{r}
+visualize(bootstrap_distn_slope)
+```
+
+```{r}
+percentile_ci <- bootstrap_distn_slope %>% 
+  get_confidence_interval(type = "percentile", level = 0.95)
+percentile_ci
+```
+
+```{r}
+observed_slope <- evals %>% 
+  specify(score ~ bty_avg) %>% 
+  calculate(stat = "slope")
+observed_slope
+```
+
+```{r}
+se_ci <- bootstrap_distn_slope %>% 
+  get_ci(level = 0.95, type = "se", point_estimate = observed_slope)
+se_ci
+```
+
+```{r}
+visualize(bootstrap_distn_slope) + 
+  shade_confidence_interval(endpoints = percentile_ci, 
+                            fill = NULL, 
+                            linetype = "solid", 
+                            color = "grey90") + 
+  shade_confidence_interval(endpoints = se_ci, 
+                            fill = NULL, 
+                            linetype = "dashed", 
+                            color = "grey60") +
+  shade_confidence_interval(endpoints = c(0.035, 0.099), 
+                            fill = NULL, 
+                            linetype = "dotted", 
+                            color = "black")
+```
+
+Observe that all three are quite similar! 
+Furthermore, none of the three confidence intervals for $\beta_1$ contain 0 and are entirely located above 0.
+This is suggesting that there is in fact a meaningful positive relationship between teaching and “beauty” scores.
+
+### Hypothesis test for slope
+
+```{r}
+null_distn_slope <- evals %>% 
+  specify(score ~ bty_avg) %>%
+  hypothesize(null = "independence") %>% 
+  generate(reps = 1000, type = "permute") %>% 
+  calculate(stat = "slope")
+```
+
+```{r}
+visualize(null_distn_slope) +
+  shade_p_value(obs_stat = observed_slope, direction = "both")
+```
+
+```{r}
+null_distn_slope %>% 
+  get_p_value(obs_stat = observed_slope, direction = "both")
+```
+
+## Conclusion
+
+### Theory-based inference for regression
+
+```{r}
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+# Get regression table:
+get_regression_table(score_model)
+```
+
+###  Summary of statistical inference
+

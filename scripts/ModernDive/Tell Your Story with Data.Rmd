@@ -1,0 +1,207 @@
+---
+title: "Tell Your Story with Data"
+author: "Xiaochi"
+date: "14/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(tidyverse)
+library(moderndive)
+library(skimr)
+library(fivethirtyeight)
+```
+
+## Seattle house prices
+
+### Exploratory data analysis: Part I
+
+Three common steps in an exploratory data analysis:
+
+1. Looking at the raw data values.
+2. Computing summary statistics.
+3. Creating data visualizations.
+
+```{r}
+house_prices
+```
+
+```{r}
+house_prices %>% 
+  select(price, sqft_living, condition) %>% 
+  skim()
+```
+
+Observe that the mean price of \$540,088 is larger than the median of \$450,000.
+This is because a small number of very expensive houses are inflating the average.
+In other words, there are “outlier” house prices in our dataset. 
+This fact will become even more apparent when we create our visualizations next.
+
+```{r}
+# Histogram of house price:
+ggplot(house_prices, aes(x = price)) +
+  geom_histogram(color = "white") +
+  labs(x = "price (USD)", title = "House price")
+
+# Histogram of sqft_living:
+ggplot(house_prices, aes(x = sqft_living)) +
+  geom_histogram(color = "white") +
+  labs(x = "living space (square feet)", title = "House size")
+
+# Barplot of condition:
+ggplot(house_prices, aes(x = condition)) +
+  geom_bar() +
+  labs(x = "condition", title = "House condition")
+```
+
+First, observe in the bottom plot that most houses are of condition “3”, with a few more of conditions “4” and “5”, and almost none that are “1” or “2”.
+
+Next, observe in the histogram for price in the top-left plot that a majority of houses are less than two million dollars. 
+Observe also that the x-axis stretches out to 8 million dollars, even though there does not appear to be any houses close to that price. 
+This is because there are a very small number of houses with prices closer to 8 million. 
+These are the outlier house prices we mentioned earlier. 
+We say that the variable price is right-skewed as exhibited by the long right tail.
+
+Further, observe in the histogram of sqft_living in the middle plot as well that most houses appear to have less than 5000 square feet of living space.
+Observe also that this variable is also right-skewed, although not as drastically as the price variable.
+
+they shift the view to be on relative changes instead of absolute changes.
+
+```{r}
+house_prices <- house_prices %>%
+  mutate(
+    log10_price = log10(price),
+    log10_size = log10(sqft_living)
+    )
+```
+
+```{r}
+house_prices %>% 
+  select(price, log10_price, sqft_living, log10_size)
+```
+
+```{r}
+# Before log10 transformation:
+ggplot(house_prices, aes(x = price)) +
+  geom_histogram(color = "white") +
+  labs(x = "price (USD)", title = "House price: Before")
+
+# After log10 transformation:
+ggplot(house_prices, aes(x = log10_price)) +
+  geom_histogram(color = "white") +
+  labs(x = "log10 price (USD)", title = "House price: After")
+```
+
+Observe that after the transformation, the distribution is much less skewed, and in this case, more symmetric and more bell-shaped. 
+Now you can more easily distinguish the lower priced houses.
+
+```{r}
+# Before log10 transformation:
+ggplot(house_prices, aes(x = sqft_living)) +
+  geom_histogram(color = "white") +
+  labs(x = "living space (square feet)", title = "House size: Before")
+
+# After log10 transformation:
+ggplot(house_prices, aes(x = log10_size)) +
+  geom_histogram(color = "white") +
+  labs(x = "log10 living space (square feet)", title = "House size: After")
+```
+
+Observe in Figure 11.5 that the log10 transformation has a similar effect of unskewing the variable.
+
+### Exploratory data analysis: Part II
+
+```{r}
+# Plot interaction model
+ggplot(house_prices, 
+       aes(x = log10_size, y = log10_price, col = condition)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(y = "log10 price", 
+       x = "log10 size", 
+       title = "House prices in Seattle")
+
+# Plot parallel slopes model
+ggplot(house_prices, 
+       aes(x = log10_size, y = log10_price, col = condition)) +
+  geom_point(alpha = 0.05) +
+  geom_parallel_slopes(se = FALSE) +
+  labs(y = "log10 price", 
+       x = "log10 size", 
+       title = "House prices in Seattle")
+```
+
+In both cases, we see there is a positive relationship between house price and size, meaning as houses are larger, they tend to be more expensive.
+Furthermore, in both plots it seems that houses of condition 5 tend to be the most expensive for most house sizes as evidenced by the fact that the line for condition 5 is highest, followed by conditions 4 and 3.
+As for conditions 1 and 2, this pattern isn’t as clear. 
+
+```{r}
+ggplot(house_prices, 
+       aes(x = log10_size, y = log10_price, col = condition)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(y = "log10 price", 
+       x = "log10 size", 
+       title = "House prices in Seattle") +
+  facet_wrap(~ condition)
+```
+
+### Regression modeling
+
+```{r}
+# Fit regression model:
+price_interaction <- lm(log10_price ~ log10_size * condition, 
+                        data = house_prices)
+
+# Get regression table:
+get_regression_table(price_interaction)
+```
+
+For homes of all five condition types, as the size of the house increases, the price increases.
+This is what most would expect.
+However, the rate of increase of price with size is fastest for the homes with conditions 3, 4, and 5 of 0.823, 0.836, and 1, respectively.
+These are the three largest slopes out of the five.
+
+### Making predictions
+
+```{r}
+2.45 + 1 * log10(1900)
+```
+
+```{r}
+10^(2.45 + 1 * log10(1900))
+```
+
+## Effective data storytelling
+
+### Bechdel test for Hollywood gender representation
+
+### US Births in 1999
+
+```{r}
+US_births_1994_2003
+```
+
+```{r}
+US_births_1999 <- US_births_1994_2003 %>%
+  filter(year == 1999)
+```
+
+```{r}
+ggplot(US_births_1999, aes(x = date, y = births)) +
+  geom_line() +
+  labs(x = "Date", 
+       y = "Number of births", 
+       title = "US Births in 1999")
+```
+
+```{r}
+US_births_1999 %>% 
+  arrange(desc(births))
+```
+
