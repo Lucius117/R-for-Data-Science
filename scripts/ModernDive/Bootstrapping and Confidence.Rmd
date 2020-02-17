@@ -55,8 +55,20 @@ ggplot(pennies_sample, aes(x = year)) +
 Observe in Figure 8.9 that while the general shapes of both distributions of year are roughly similar, they are not identical.
 
 ```{r}
+pennies_resample <- tibble(
+  year = c(1976, 1962, 1976, 1983, 2017, 2015, 2015, 1962, 2016, 1976, 
+           2006, 1997, 1988, 2015, 2015, 1988, 2016, 1978, 1979, 1997, 
+           1974, 2013, 1978, 2015, 2008, 1982, 1986, 1979, 1981, 2004, 
+           2000, 1995, 1999, 2006, 1979, 2015, 1979, 1998, 1981, 2015, 
+           2000, 1999, 1988, 2017, 1992, 1997, 1990, 1988, 2006, 2000)
+)
+```
+
+
+```{r}
 pennies_resample %>% 
-  summarize(mean_year = mean(year))
+  summarize(mean_year = mean(year)) %>% 
+  round(2)
 ```
 
 ### Resampling 35 times
@@ -129,14 +141,14 @@ It is an approximation to the sampling distribution.
 The goals of resampling with replacement is to construct the bootstrap distribution, which is an approximation of the sampling distribution.
 
 ```{r}
-# Repeat resampling 1000 times
+# Repeat resampling 10000 times
 virtual_resamples <- pennies_sample %>% 
-  rep_sample_n(size = 50, replace = TRUE, reps = 1000)
+  rep_sample_n(size = 50, replace = TRUE, reps = 10000)
 ```
 
 
 ```{r}
-# Compute 1000 sample means
+# Compute 10000 sample means
 virtual_resampled_means <- virtual_resamples %>% 
   group_by(replicate) %>% 
   summarize(mean_year = mean(year))
@@ -144,7 +156,7 @@ virtual_resampled_means <- virtual_resamples %>%
 
 ```{r}
 virtual_resampled_means <- pennies_sample %>% 
-  rep_sample_n(size = 50, replace = TRUE, reps = 1000) %>% 
+  rep_sample_n(size = 50, replace = TRUE, reps = 10000) %>% 
   group_by(replicate) %>% 
   summarize(mean_year = mean(year))
 virtual_resampled_means
@@ -164,7 +176,7 @@ virtual_resampled_means %>%
   summarize(mean_of_means = mean(mean_year))
 ```
 
-The mean of these 1000 means is 1995.49, which is quite close to the mean of our original sample of 50 pennies of 1995.44.
+The mean of these 1000 means is 1995.46, which is quite close to the mean of our original sample of 50 pennies of 1995.44.
 This is the case since each of the 1000 resamples is based on the original sample of 50 pennies.
 
 ## Understanding confidence intervals
@@ -207,7 +219,7 @@ using the rep_sample_n() function and a couple of dplyr verbs to construct the b
 
 ```{r}
 pennies_sample %>% 
-  rep_sample_n(size = 50, replace = TRUE, reps = 1000) %>% 
+  rep_sample_n(size = 50, replace = TRUE, reps = 10000) %>% 
   group_by(replicate) %>% 
   summarize(mean_year = mean(year))
 ```
@@ -243,13 +255,13 @@ Since in the case of pennies we only have a response variable and no explanatory
 ```{r}
 pennies_sample %>% 
   specify(response = year) %>% 
-  generate(reps = 1000, type = "bootstrap")
+  generate(reps = 10000, type = "bootstrap")
 ```
 
 ```{r}
 bootstrap_distribution <- pennies_sample %>% 
   specify(response = year) %>% 
-  generate(reps = 1000) %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
   calculate(stat = "mean")
 bootstrap_distribution
 ```
@@ -338,7 +350,7 @@ bowl %>%
 ```{r}
 sample_1_bootstrap <- bowl_sample_1 %>% 
   specify(response = color, success = "red") %>% 
-  generate(reps = 1000, type = "bootstrap") %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
   calculate(stat = "prop")
 sample_1_bootstrap
 ```
@@ -362,10 +374,18 @@ percentile_ci_1
 ```
 
 ```{r}
+# ture population proportion
+bowl %>% 
+  summarize(p_red = mean(color == "red"))
+```
+
+
+```{r}
 sample_1_bootstrap %>% 
   visualize(bins = 15) + 
   shade_confidence_interval(endpoints = percentile_ci_1) +
-  geom_vline(xintercept = 0.375, linetype = "dashed")
+  geom_vline(xintercept = 0.375, linetype = "dashed") +
+  geom_vline(xintercept = 0.42)
 ```
 
 ```{r}
@@ -377,7 +397,7 @@ bowl_sample_2
 ```{r}
 sample_2_bootstrap <- bowl_sample_2 %>% 
   specify(response = color, success = "red") %>% 
-  generate(reps = 1000, type = "bootstrap") %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
   calculate(stat = "prop")
 sample_2_bootstrap
 ```
@@ -413,10 +433,11 @@ mythbusters_yawn %>%
 1. construct the bootstrap distribution for $\hat{p}_{seed}-\hat{p}_{control}$.
 2. use this to construct 95% confidence intervals for $p_{seed}-p_{control}$.
 
+
 ```{r}
 bootstrap_distribution_yawning <- mythbusters_yawn %>% 
   specify(formula = yawn ~ group, success = "yes") %>% 
-  generate(reps = 1000, type = "bootstrap") %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
   calculate(stat = "diff in props", order = c("seed", "control"))
 bootstrap_distribution_yawning
 ```
@@ -472,7 +493,7 @@ We'll compare:
 ```{r}
 # Take 1000 virtual samples of size 50 from the bowl:
 virtual_samples <- bowl %>% 
-  rep_sample_n(size = 50, reps = 1000)
+  rep_sample_n(size = 50, replace = FALSE,reps = 10000)
 
 # Compute the sampling distribution of 1000 values of p-hat
 sampling_distribution <- virtual_samples %>% 
@@ -488,22 +509,27 @@ ggplot(sampling_distribution, aes(x = prop_red)) +
 ```
 
 ```{r}
-sampling_distribution %>% summarize(se = sd(prop_red))
+sampling_distribution %>% 
+  summarize(se = sd(prop_red))
 ```
+
+
+
 
 #### Bootstrap distribution
 
 ```{r}
 bootstrap_distribution <- bowl_sample_1 %>% 
   specify(response = color, success = "red") %>% 
-  generate(reps = 1000, type = "bootstrap") %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
   calculate(stat = "prop")
 
 visualize(bootstrap_distribution)
 ```
 
 ```{r}
-bootstrap_distribution %>% summarize(se = sd(stat))
+bootstrap_distribution %>% 
+  summarize(se = sd(stat))
 ```
 
 #### Comparison

@@ -1,0 +1,81 @@
+---
+title: "Stochastic gradient boosting"
+author: "Xiaochi"
+date: "17/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(tidyverse)
+library(caret)
+library(xgboost)
+```
+
+## XGBOOST
+
+```{r}
+# Load the data and remove NAs
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- PimaIndiansDiabetes2[training.samples, ]
+test.data <- PimaIndiansDiabetes2[-training.samples, ]
+
+# Fit the model on the training set
+set.seed(123)
+model <- train(diabetes ~., data = train.data, method = "xgbTree",
+               trControl = trainControl("cv", number = 10))
+# Best tuning parameter
+model$bestTune
+
+# Make predictions on the test data
+predicted.classes <- model %>% 
+  predict(test.data)
+
+# Compute model prediction accuracy rate
+mean(predicted.classes == test.data$diabetes)
+
+varImp(model)
+```
+
+```{r}
+# Load the data
+data("Boston", package = "MASS")
+Boston
+
+# Split the data into training and test set
+set.seed(123)
+training.samples <- Boston$medv %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- Boston[training.samples, ]
+test.data <- Boston[-training.samples, ]
+
+# Fit the model on the training set
+set.seed(123)
+model <- train(medv ~., data = train.data, method = "xgbTree",
+               trControl = trainControl("cv", number = 10))
+# Best tuning parameter mtry
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% 
+  predict(test.data)
+
+# Compute the average prediction error RMSE
+RMSE(predictions, test.data$medv)
+```
+
+## MLR
+
+```{r}
+
+```
+

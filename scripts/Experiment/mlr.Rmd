@@ -1,0 +1,267 @@
+---
+title: "mlr"
+author: "Xiaochi"
+date: "06/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = TRUE,
+	warning = TRUE
+)
+library(mlr)
+library(tidyverse)
+```
+
+## Task
+
+```{r}
+data(BostonHousing, package = "mlbench")
+names(BostonHousing)
+regr.task = makeRegrTask(id = "bh", data = BostonHousing, target = "medv")
+```
+
+```{r}
+data(BreastCancer, package = "mlbench")
+df = BreastCancer
+df$Id = NULL
+classif.task = makeClassifTask(id = "BreastCancer", 
+                               data = df, 
+                               target = "Class")
+classif.task
+```
+
+```{r}
+getTaskDesc(classif.task)
+```
+
+## Learners
+
+```{r}
+# Classification tree, set it up for predicting probabilities
+classif.lrn = makeLearner("classif.randomForest", 
+                          predict.type = "prob", 
+                          fix.factors.prediction = TRUE)
+
+# Regression gradient boosting machine, specify hyperparameters via a list
+regr.lrn = makeLearner("regr.gbm", 
+                       par.vals = list(n.trees = 500, 
+                                       interaction.depth = 3))
+
+# Cox proportional hazards model with custom name
+surv.lrn = makeLearner("surv.coxph", id = "cph")
+
+# K-means with 5 clusters
+cluster.lrn = makeLearner("cluster.kmeans", centers = 5)
+
+# Multilabel Random Ferns classification algorithm
+multilabel.lrn = makeLearner("multilabel.rFerns")
+```
+
+```{r}
+classif.lrn
+surv.lrn
+regr.lrn
+regr.lrn$par.set
+getHyperPars(regr.lrn)
+getLearnerParVals(regr.lrn)
+getParamSet(regr.lrn)
+getLearnerParamSet(regr.lrn)
+getParamSet("classif.randomForest")
+```
+
+```{r}
+surv.lrn
+surv.lrn = setLearnerId(surv.lrn, "CoxModel")
+surv.lrn
+```
+
+
+
+```{r}
+listLearners()
+```
+
+## Training a Learner
+
+```{r}
+# Generate the task
+task = makeClassifTask(data = iris, target = "Species")
+
+# Generate the learner
+lrn = makeLearner("classif.lda")
+
+# Train the learner
+mod = train(lrn, task)
+mod
+
+mod = train("classif.lda", task)
+mod
+
+mod$learner.model
+getLearnerModel(mod)
+
+```
+
+```{r}
+data(ruspini, package = "cluster")
+plot(y ~ x, ruspini)
+```
+
+```{r}
+# Generate the task
+ruspini.task = makeClusterTask(data = ruspini)
+
+# Generate the learner
+lrn = makeLearner("cluster.kmeans", centers = 4)
+
+# Train the learner
+mod = train(lrn, ruspini.task)
+mod
+```
+
+```{r}
+names(mod)
+mod$learner
+getLearnerModel(mod)
+mod$features
+
+```
+
+```{r}
+# Get the number of observations
+n = getTaskSize(bh.task)
+
+# Use 1/3 of the observations for training
+train.set = sample(n, size = n/3)
+
+# Train the learner
+mod = train("regr.lm", bh.task, subset = train.set)
+mod
+```
+
+## Predicting
+
+```{r}
+n = getTaskSize(bh.task)
+train.set = seq(1, n, by = 2)
+test.set = seq(2, n, by = 2)
+lrn = makeLearner("regr.gbm", n.trees = 100)
+mod = train(lrn, 
+            bh.task, 
+            subset = train.set)
+
+task.pred = predict(mod, 
+                    task = bh.task, 
+                    subset = test.set)
+task.pred
+```
+
+```{r}
+n = nrow(iris)
+iris.train = iris[seq(1, n, by = 2), -5]
+iris.test = iris[seq(2, n, by = 2), -5]
+task = makeClusterTask(data = iris.train)
+mod = train("cluster.kmeans", task)
+
+newdata.pred = predict(mod, newdata = iris.test)
+newdata.pred
+```
+
+```{r}
+### Result of predict with data passed via task argument
+as.data.frame(task.pred)
+```
+
+```{r}
+### Result of predict with data passed via newdata argument
+as.data.frame(newdata.pred)
+```
+
+```{r}
+getPredictionTruth(task.pred)
+getPredictionResponse(task.pred)
+```
+
+```{r}
+as.data.frame(listLearners("regr", 
+                           check.packages = FALSE, 
+                           properties = "se"))[c("class", "name")]
+```
+
+```{r}
+### Create learner and specify predict.type
+lrn.lm = makeLearner("regr.lm", predict.type = 'se')
+mod.lm = train(lrn.lm, bh.task, subset = train.set)
+task.pred.lm = predict(mod.lm, task = bh.task, subset = test.set)
+task.pred.lm
+getPredictionSE(task.pred.lm)
+```
+
+```{r}
+lrn = makeLearner("cluster.cmeans", predict.type = "prob")
+mod = train(lrn, mtcars.task)
+
+pred = predict(mod, task = mtcars.task)
+```
+
+```{r}
+### Linear discriminant analysis on the iris data set
+mod = train("classif.lda", task = iris.task)
+
+pred = predict(mod, task = iris.task)
+pred
+```
+
+```{r}
+lrn = makeLearner("classif.rpart", predict.type = "prob")
+mod = train(lrn, iris.task)
+
+pred = predict(mod, newdata = iris)
+```
+
+```{r}
+calculateConfusionMatrix(pred, relative = TRUE)
+```
+
+## Tuning Hyperparameters
+
+```{r}
+# ex: create a search space for the C hyperparameter from 0.01 to 0.1
+ps = makeParamSet(
+  makeNumericParam("C", lower = 0.01, upper = 0.1)
+)
+
+# ex: random search with 100 iterations
+ctrl = makeTuneControlRandom(maxit = 100L)
+
+rdesc = makeResampleDesc("CV", iters = 3L)
+measure = acc
+```
+
+```{r}
+discrete_ps = makeParamSet(
+  makeDiscreteParam("C", values = c(0.5, 1.0, 1.5, 2.0)),
+  makeDiscreteParam("sigma", values = c(0.5, 1.0, 1.5, 2.0))
+)
+print(discrete_ps)
+
+num_ps = makeParamSet(
+  makeNumericParam("C", 
+                   lower = -10, upper = 10, 
+                   trafo = function(x) 10^x),
+  makeNumericParam("sigma", 
+                   lower = -10, upper = 10, 
+                   trafo = function(x) 10^x))
+```
+
+```{r}
+ctrl = makeTuneControlGrid()
+```
+
+```{r}
+ctrl = makeTuneControlRandom(maxit = 200L)
+```
+
