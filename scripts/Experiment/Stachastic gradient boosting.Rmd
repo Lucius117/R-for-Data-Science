@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(caret)
 library(xgboost)
+library(mlr)
+library(knitr)
 ```
 
 ## XGBOOST
@@ -73,9 +75,44 @@ predictions <- model %>%
 RMSE(predictions, test.data$medv)
 ```
 
-## MLR
+## Xgboost using MLR
+
+```{r}
+train_orig <- read_csv("../../data/train.csv")
+test_orig <- read_csv("../../data/test.csv")
+
+train <- train_orig %>%
+  mutate(dataset = "train")
+
+test <- test_orig %>%
+  mutate(dataset = "test")
+
+combined <- bind_rows(train, test)
+
+summarizeColumns(combined)
+
+combined <- combined %>%
+  select(-c(PassengerId, Name, Ticket, Cabin))
+
+combined <- combined %>%
+  mutate_at(
+    .vars = vars("Survived", "Pclass", "Sex", "Embarked"),
+    .funs = funs(as.factor(.))
+  )
+
+# Impute missing values by field type
+imp <- impute(combined, classes = list(factor = imputeMode(),
+                                       integer = imputeMean(),
+                                       numeric = imputeMean()))
+combined <- imp$data
+# Show column summary
+summarizeColumns(combined)
+```
+
 
 ```{r}
 
 ```
+
+
 

@@ -16,6 +16,8 @@ library(raster)
 library(mlr)
 library(dplyr)
 library(parallelMap)
+library(tmap)
+library(knitr)
 ```
 
 ```{r}
@@ -24,11 +26,10 @@ data("landslides", package = "RSAGA")
 
 ```{r}
 landslides
-```
-
-```{r}
 summary(landslides)
 ```
+
+
 
 ```{r}
 # select non-landslide points
@@ -96,6 +97,10 @@ pred = raster::predict(ta, model = fit, type = "response")
 plot(pred)
 ```
 
+
+
+
+
 ```{r}
 roc <- pROC::roc(lsl$lslpts, fitted(fit))
 plot(roc)
@@ -148,10 +153,7 @@ lrn = makeLearner(
 ```
 
 ```{r}
-perf_level = makeResampleDesc(
-  method = "SpRepCV", 
-  folds = 5, 
-  reps = 100)
+perf_level = makeResampleDesc(method = "SpRepCV", folds = 5, reps = 100)
 
 set.seed(012348)
 sp_cv = mlr::resample(
@@ -174,6 +176,12 @@ mean(sp_cv$measures.test$auc)
 ```
 
 ## Spatial tuning of machine-learning hyperparameters
+
+
+```{r inner-outer, echo=FALSE, fig.cap="Schematic of hyperparameter tuning and performance estimation levels in CV. (Figure was taken from Schratz et al. (2018). Permission to reuse it  was kindly granted.)", fig.scap="Schematic of hyperparameter tuning."}
+knitr::include_graphics("../../figures/13_cv.png")
+```
+
 
 ```{r}
 library(mlr)
@@ -220,6 +228,7 @@ ps = makeParamSet(
   makeNumericParam("sigma", lower = -15, upper = 6, trafo = function(x) 2^x)
   )
 ```
+
 
 ```{r}
 wrapped_lrn_ksvm = makeTuneWrapper(learner = lrn_ksvm, 

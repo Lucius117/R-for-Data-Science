@@ -544,3 +544,10 @@ NCI
 
 mq-data-advice.talkyard.net
 
+# Machine Learning Workshop
+
+pacman package
+
+randomForest
+ranger
+

@@ -54,6 +54,7 @@ plot(study_area, alpha = 0, add = TRUE)
 ```{r}
 data("ep", package = "spDataLarge")
 ep
+plot(ep)
 ```
 
 ```{r}

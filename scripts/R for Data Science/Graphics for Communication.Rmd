@@ -3,6 +3,8 @@ title: "Graphics for Communication"
 author: "Xiaochi"
 date: "06/09/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -22,15 +24,48 @@ labs( ): add labels
 ggplot(mpg, aes(displ, hwy)) +
   geom_point(aes(color = class)) +
   geom_smooth(se = FALSE) +
+  labs(title = "Fuel efficiency generally decreases with engine size")
+```
+
+
+```{r}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
   labs(
     title = "Fuel efficiency generally decreases with engine size",
     subtitle = "Two seaters (sports cars) are an exception because of their light weight",
-    caption = "Data from fueleconomy.gov",
+    caption = "Data from fueleconomy.gov"
+  )
+```
+
+
+```{r}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class)) +
+  geom_smooth(se = FALSE) +
+  labs(
     x = "Engine displacement (L)",
     y = "Highway fuel economy (mpg)",
     colour = "Car type"
-    )
+  )
 ```
+
+
+```{r}
+df <- tibble(
+  x = runif(10),
+  y = runif(10)
+)
+ggplot(df, aes(x, y)) +
+  geom_point() +
+  labs(
+    x = quote(sum(x[i] ^ 2, i == 1, n)),
+    y = quote(alpha + beta + frac(delta, theta))
+  )
+```
+
+
 
 * title: the purpose of a plot title is to summarise the main finding. Avoid titles that just describe what the plot is, e.g. “A scatterplot of engine displacement vs. fuel economy”.
 
@@ -97,14 +132,10 @@ class_avg <- mpg %>%
   )
 
 ggplot(mpg, aes(displ, hwy, colour = class)) +
-  ggrepel::geom_label_repel(aes(label = class),
-                            data = class_avg,
-                            size = 6,
-                            label.size = 0,
-                            segment.color = NA) +
+  ggrepel::geom_label_repel(aes(label = class), data = class_avg,
+                            size = 6, label.size = 0, segment.color = NA) +
   geom_point() +
   theme(legend.position = "none")
-
 ```
 
 ```{r}
@@ -117,7 +148,7 @@ label <- mpg %>%
 
 ggplot(mpg, aes(displ, hwy)) +
   geom_point() +
-  geom_text(aes(label = label), data = label, vjust = "top", hjust = "rigth")
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right")
 ```
 
 ```{r}
@@ -130,7 +161,6 @@ label <- tibble(
 ggplot(mpg, aes(displ, hwy)) +
   geom_point() +
   geom_text(aes(label = label), data = label, vjust = "top", hjust = "right")
-
 ```
 
 ```{r}
@@ -150,7 +180,10 @@ ggplot(mpg, aes(displ, hwy)) +
 ```{r}
 ggplot(mpg, aes(displ, hwy)) +
   geom_point(aes(colour = class))
+```
 
+
+```{r}
 ggplot(mpg, aes(displ, hwy)) +
   geom_point(aes(colour = class)) +
   scale_x_continuous() +
@@ -215,14 +248,31 @@ presidential %>%
 ## Legend layout
 
 ```{r}
-ggplot(mpg, aes(displ, hwy)) +
-  geom_point(aes(colour = class)) +
-  #theme(legend.position = "left")
-  #theme(legend.position = "top")
-  #theme(legend.position = "bottom")
-  theme(legend.position = "right")
-  #theme(legend.position = "none")
+base <- ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class))
+base
 ```
+
+```{r}
+base + theme(legend.position = "left")
+```
+
+```{r}
+base + theme(legend.position = "top")
+```
+
+
+```{r}
+base + theme(legend.position = "bottom")
+```
+```{r}
+base + theme(legend.position = "right") # the default
+```
+
+```{r}
+base + theme(legend.position = "none")
+```
+
 
 ```{r}
 ggplot(mpg, aes(displ, hwy)) +
@@ -261,6 +311,7 @@ ggplot(mpg, aes(displ, hwy)) +
   
 ```
 
+
 ```{r}
 ggplot(mpg, aes(displ, hwy)) +
   geom_point(aes(color = drv, shape = drv)) +
@@ -298,7 +349,7 @@ Note that all colour scales come in two variety: scale_colour_x( ) and scale_fil
 
 There are three ways to control the plot limits: 
 
-1. Adjusting what data are aplotted
+1. Adjusting what data are plotted
 2. Setting the limits in each scale
 3. Setting xlim and ylim in coord_cartesian( )
 
@@ -306,7 +357,8 @@ There are three ways to control the plot limits:
 ggplot(mpg, mapping = aes(displ, hwy)) +
   geom_point(aes(color = class)) +
   geom_smooth() +
-  coord_cartesian(xlim = c(5, 7), ylim = c(10, 30))
+  coord_cartesian(xlim = c(5, 7), 
+                  ylim = c(10, 30))
 ```
 
 ```{r}
@@ -348,14 +400,10 @@ ggplot(compact, aes(displ, hwy, colour = drv)) +
 
 # Themes
 
-
-
 ```{r}
 ggplot(mpg, aes(displ, hwy)) +
   geom_point(aes(color = class)) +
-  geom_smooth(se = FALSE) +
-  theme_bw()
-  
+  geom_smooth(se = FALSE)
 ```
 
 # Saving your plots
@@ -366,5 +414,449 @@ ggplot(mpg, aes(displ, hwy)) + geom_point()
 
 ```{r}
 ggsave("../fig_output/my_plot.pdf")
+```
+
+
+# Color
+
+```{r}
+ToothGrowth
+mtcars
+```
+
+```{r}
+# Convert dose and cyl columns from numeric to factor variables
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+mtcars$cyl <- as.factor(mtcars$cyl)
+```
+
+```{r}
+# Box plot
+ggplot(ToothGrowth, aes(x=dose, y=len)) +geom_boxplot()
+# scatter plot
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point()
+```
+
+```{r}
+# box plot
+ggplot(ToothGrowth, aes(x=dose, y=len)) +
+  geom_boxplot(fill='#A4A4A4', color="darkred")
+# scatter plot
+ggplot(mtcars, aes(x=wt, y=mpg)) + 
+  geom_point(color='darkblue')
+```
+
+```{r}
+# Box plot
+bp<-ggplot(ToothGrowth, aes(x=dose, y=len, fill=dose)) +
+  geom_boxplot()
+bp
+# Scatter plot
+sp<-ggplot(mtcars, aes(x=wt, y=mpg, color=cyl)) + geom_point()
+sp
+```
+
+```{r}
+# Box plot
+bp + scale_fill_hue(l=40, c=35)
+# Scatter plot
+sp + scale_color_hue(l=40, c=35)
+```
+
+
+```{r}
+# Box plot
+bp + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"))
+# Scatter plot
+sp + scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))
+```
+
+```{r}
+# Box plot
+bp + scale_fill_manual(breaks = c("2", "1", "0.5"), 
+                       values=c("red", "blue", "green"))
+# Scatter plot
+sp + scale_color_manual(breaks = c("8", "6", "4"),
+                        values=c("red", "blue", "green"))
+```
+
+```{r}
+# Box plot
+bp + scale_fill_brewer(palette="Dark2")
+# Scatter plot
+sp + scale_color_brewer(palette="Dark2")
+```
+
+```{r}
+# Box plot
+bp + scale_fill_grey() + theme_classic()
+# Scatter plot
+sp + scale_color_grey() + theme_classic()
+```
+
+```{r}
+# Box plot
+bp + scale_fill_grey(start=0.8, end=0.2) + theme_classic()
+# Scatter plot
+sp + scale_color_grey(start=0.8, end=0.2) + theme_classic()
+```
+
+```{r}
+# Color by qsec values
+sp2<-ggplot(mtcars, aes(x=wt, y=mpg, color=qsec)) + geom_point()
+sp2
+```
+
+```{r}
+# Change the low and high colors
+# Sequential color scheme
+sp2+scale_color_gradient(low="blue", high="red")
+```
+
+```{r}
+# Diverging color scheme
+mid<-mean(mtcars$qsec)
+sp2+scale_color_gradient2(midpoint=mid, low="blue", mid="white",
+                     high="red", space ="Lab" )
+```
+
+```{r}
+set.seed(1234)
+x <- rnorm(200)
+# Histogram
+hp<-qplot(x =x, fill=..count.., geom="histogram") 
+hp
+# Sequential color scheme
+hp+scale_fill_gradient(low="blue", high="red")
+```
+
+
+```{r}
+# Scatter plot
+# Color points by the mpg variable
+sp3<-ggplot(mtcars, aes(x=wt, y=mpg, color=mpg)) + geom_point()
+sp3
+```
+
+```{r}
+# Gradient between n colors
+sp3+scale_color_gradientn(colours = rainbow(5))
+```
+
+# SF
+
+```{r}
+library(tidyverse)
+library(sf)
+system.file("gpkg/nc.gpkg", package="sf") %>% read_sf() %>% 
+    st_transform(32119) -> nc.32119
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = nc.32119) 
+```
+
+```{r}
+ggplot(nc.32119) + geom_sf()
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = nc.32119) + 
+  theme_void() +
+  theme(panel.grid.major = element_line(color = "white"))
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = nc.32119) + 
+  aes(fill = BIR74) +
+  scale_fill_gradientn(colors = viridis::viridis(20))
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = nc.32119) + 
+  geom_sf(data = st_centroid(nc.32119))
+```
+
+```{r}
+nc <- sf::st_read(system.file("gpkg/nc.gpkg", package = "sf"), quiet = TRUE)
+nc_3857 <- sf::st_transform(nc, "+init=epsg:3857")
+ggplot() + 
+    geom_sf(data = nc_3857[1:3, ], aes(fill = AREA)) + 
+    geom_sf_label(data = nc_3857[1:3, ], aes(label = NAME))
+```
+
+```{r}
+library(stars)
+library(ggplot2)
+library(viridis)
+#> Loading required package: viridisLite
+system.file("tif/L7_ETMs.tif", package = "stars") %>% read_stars() -> x
+
+g = ggplot() + 
+    coord_equal() + 
+    scale_fill_viridis() + 
+    theme_void() +
+    scale_x_discrete(expand=c(0,0)) +
+    scale_y_discrete(expand=c(0,0))
+
+g + geom_stars(data = x) + 
+    facet_wrap(~band)
+```
+
+```{r}
+g + geom_stars(data = x, downsample = c(10,10,1)) + 
+    facet_wrap(~band)
+```
+
+```{r}
+library(spacetime)
+data(air) # this loads several datasets in .GlobalEnv
+d = st_dimensions(station = st_as_sfc(stations), time = dates)
+aq = st_as_stars(list(PM10 = air), dimensions = d)
+# ggplot() + geom_stars(data = aq[,,3000])
+aq.sf = st_as_sf(aq[,,3000], long=TRUE)
+ggplot() + 
+   geom_sf(data = st_as_sf(DE_NUTS1)) + 
+   geom_sf(data = aq.sf, mapping = aes(col = PM10)) + 
+   ggtitle(aq.sf$time[1])
+```
+
+# Mix Multiple Graphs
+
+```{r}
+library(ggpubr)
+
+# ToothGrowth
+data("ToothGrowth")
+ToothGrowth
+
+# mtcars 
+data("mtcars")
+mtcars$name <- rownames(mtcars)
+mtcars$cyl <- as.factor(mtcars$cyl)
+```
+
+```{r}
+# Box plot (bp)
+bxp <- ggboxplot(ToothGrowth, x = "dose", y = "len",
+                 color = "dose", palette = "jco")
+bxp
+```
+
+```{r}
+# Dot plot (dp)
+dp <- ggdotplot(ToothGrowth, x = "dose", y = "len",
+                 color = "dose", palette = "jco", binwidth = 1)
+dp
+```
+
+```{r}
+# Bar plot (bp)
+bp <- ggbarplot(mtcars, x = "name", y = "mpg",
+          fill = "cyl",               # change fill color by cyl
+          color = "white",            # Set bar border colors to white
+          palette = "jco",            # jco journal color palett. see ?ggpar
+          sort.val = "asc",           # Sort the value in ascending order
+          sort.by.groups = TRUE,      # Sort inside each group
+          x.text.angle = 90           # Rotate vertically x axis texts
+          )
+bp
+```
+
+```{r}
+# Scatter plots (sp)
+sp <- ggscatter(mtcars, x = "wt", y = "mpg",
+                add = "reg.line",               # Add regression line
+                conf.int = TRUE,                # Add confidence interval
+                color = "cyl", palette = "jco", # Color by groups "cyl"
+                shape = "cyl"                   # Change point shape by groups "cyl"
+                )+
+  stat_cor(aes(color = cyl), label.x = 3)       # Add correlation coefficient
+sp
+```
+
+## arrange
+
+```{r}
+ggarrange(bxp, dp, bp + rremove("x.text"), 
+          labels = c("A", "B", "C"),
+          ncol = 2, nrow = 2)
+```
+
+```{r}
+library("cowplot")
+plot_grid(bxp, dp, bp + rremove("x.text"), 
+          labels = c("A", "B", "C"),
+          ncol = 2, nrow = 2)
+```
+
+```{r}
+library("gridExtra")
+grid.arrange(bxp, dp, bp + rremove("x.text"), 
+             ncol = 2, nrow = 2)
+```
+
+## annotate
+
+
+```{r fig.width=4}
+figure <- ggarrange(sp, bp + font("x.text", size = 10),
+                    ncol = 1, nrow = 2)
+annotate_figure(figure,
+                top = text_grob("Visualizing mpg", 
+                                color = "red", face = "bold", size = 14),
+                bottom = text_grob("Data source: \n mtcars data set", 
+                                   color = "blue", hjust = 1, x = 1, 
+                                   face = "italic", size = 10),
+                left = text_grob("Figure arranged using ggpubr", 
+                                 color = "green", rot = 90),
+                right = "I'm done, thanks :-)!",
+                fig.lab = "Figure 1", fig.lab.face = "bold"
+                )
+```
+
+## align plot panels
+
+```{r}
+# Fit survival curves
+library(survival)
+fit <- survfit( Surv(time, status) ~ adhere, data = colon )
+# Plot survival curves
+library(survminer)
+ggsurv <- ggsurvplot(fit, data = colon, 
+                     palette = "jco",                              # jco palette
+                     pval = TRUE, pval.coord = c(500, 0.4),        # Add p-value
+                     risk.table = TRUE                            # Add risk table
+                     )
+names(ggsurv)
+```
+
+```{r fig.width=3}
+ggarrange(ggsurv$plot, ggsurv$table, heights = c(2, 0.7),
+          ncol = 1, nrow = 2)
+```
+
+```{r fig.width=3}
+ggarrange(ggsurv$plot, ggsurv$table, heights = c(2, 0.7),
+          ncol = 1, nrow = 2, align = "v")
+```
+
+## column row span
+
+```{r fig.width=3}
+ggarrange(
+  # First row with scatter plot 
+  sp,
+  # Second row with box and dot plots
+  ggarrange(bxp, dp, ncol = 2, labels = c("B", "C")), 
+  nrow = 2, 
+  # Labels of the scatter plot
+  labels = "A") 
+```
+
+```{r fig.width=4}
+library("cowplot")
+
+ggdraw() +
+  draw_plot(bxp, x = 0, y = .5, width = .5, height = .5) +
+  draw_plot(dp, x = .5, y = .5, width = .5, height = .5) +
+  draw_plot(bp, x = 0, y = 0, width = 1, height = 0.5) +
+  draw_plot_label(label = c("A", "B", "C"), size = 16,
+                  x = c(0, 0.5, 0), y = c(1, 1, 0.5))
+```
+
+```{r fig.width=4}
+library("gridExtra")
+
+grid.arrange(
+  # First row with one plot spaning over 2 columns
+  sp,
+  # Second row with 2 plots in 2 different columns
+  arrangeGrob(bxp, dp, ncol = 2),
+  # Number of rows
+  nrow = 2) 
+```
+
+```{r fig.width=4}
+grid.arrange(bp,                                    # bar plot spaning two columns
+             bxp, sp,                               # box plot and scatter plot
+             ncol = 2, nrow = 2, 
+             layout_matrix = rbind(c(1,1), c(2,3)))
+```
+
+```{r fig.width=4}
+library("gridExtra")
+library("cowplot")
+# Arrange plots using arrangeGrob
+# returns a gtable (gt)
+gt <- arrangeGrob(
+  # bar plot spaning two columns
+  bp, 
+  # box plot and scatter plot
+  bxp, sp,                               
+  ncol = 2, nrow = 2, 
+  layout_matrix = rbind(c(1,1), c(2,3)))
+
+# Add labels to the arranged plots
+p <- as_ggplot(gt) + # transform to a ggplot
+  draw_plot_label(label = c("A", "B", "C"), size = 15,
+                  x = c(0, 0, 0.5), y = c(1, 0.5, 0.5)) # Add labels
+
+p
+```
+
+```{r fig.width=4}
+library(grid)
+# Move to a new page
+grid.newpage()
+# Create layout : nrow = 3, ncol = 2
+pushViewport(viewport(layout = grid.layout(nrow = 3, ncol = 2)))
+# A helper function to define a region on the layout
+define_region <- function(row, col){
+  viewport(layout.pos.row = row, layout.pos.col = col)
+} 
+# Arrange the plots
+print(sp, vp = define_region(row = 1, col = 1:2))   # Span over two columns
+print(bxp, vp = define_region(row = 2, col = 1))
+print(dp, vp = define_region(row = 2, col = 2))
+print(bp + rremove("x.text"), vp = define_region(row = 3, col = 1:2))
+```
+
+## common legend
+
+```{r}
+ggarrange(bxp, dp, labels = c("A", "B"),
+          common.legend = TRUE, legend = "bottom")
+```
+
+## scater + density
+
+```{r}
+# Scatter plot colored by groups ("Species")
+sp <- ggscatter(iris, x = "Sepal.Length", y = "Sepal.Width",
+                color = "Species", palette = "jco",
+                size = 3, alpha = 0.6) +
+  border()
+
+# Marginal density plot of x (top panel) and y (right panel)
+xplot <- ggdensity(iris, "Sepal.Length", fill = "Species",
+                   palette = "jco")
+yplot <- ggdensity(iris, "Sepal.Width", fill = "Species", 
+                   palette = "jco") +
+  rotate()
+
+# Cleaning the plots
+yplot <- yplot + clean_theme() 
+xplot <- xplot + clean_theme()
+
+# Arranging the plot
+ggarrange(xplot, NULL, sp, yplot, 
+          ncol = 2, nrow = 2,  align = "hv", 
+          widths = c(2, 1), heights = c(1, 2),
+          common.legend = TRUE)
 ```
 
