@@ -1,0 +1,35 @@
+---
+title: "Datasets and Models"
+author: "Xiaochi"
+date: "11/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(recipes)
+library(textrecipes)
+library(modeldata)
+```
+
+
+
+```{r}
+data(okc_text)
+okc_text
+```
+
+```{r}
+okc_rec <- recipe(~ essay0 + essay1, data = okc_text) %>%
+  step_tokenize(essay0, essay1) %>% # Tokenizes to words by default
+  step_stopwords(essay0, essay1) %>% # Uses the english snowball list by default
+  step_tokenfilter(essay0, essay1, max_tokens = 100) %>%
+  step_tfidf(essay0, essay1)
+
+okc_obj <- okc_rec %>%
+  prep()
+
+bake(okc_obj, okc_text)
+str(bake(okc_obj, okc_text))
+```
+

@@ -1,0 +1,152 @@
+---
+title: "Iterative search"
+author: "Xiaochi"
+date: "22/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidymodels)
+tidymodels_prefer()
+```
+
+
+```{r}
+data(cells)
+cells %>% 
+  select(-case) -> cells
+cells
+
+set.seed(33)
+cell_folds <- vfold_cv(cells)
+```
+
+## A SUPPORT VECTOR MACHINE MODEL
+
+
+```{r}
+svm_rec <- 
+  recipe(class ~ ., data = cells) %>%
+  step_YeoJohnson(all_numeric_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+
+svm_spec <- 
+  svm_rbf(cost = tune(), rbf_sigma = tune()) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+svm_wflow <- 
+  workflow() %>% 
+  add_model(svm_spec) %>% 
+  add_recipe(svm_rec)
+```
+
+```{r}
+cost()
+rbf_sigma()
+```
+
+
+```{r}
+svm_param <- 
+  svm_wflow %>% 
+  parameters() %>% 
+  update(rbf_sigma = rbf_sigma(c(-7, -1)))
+```
+
+
+```{r}
+set.seed(234)
+start_grid <- 
+  svm_param %>% 
+  update(
+    cost = cost(c(-6, 1)),
+    rbf_sigma = rbf_sigma(c(-6, -4))
+  ) %>% 
+  grid_regular(levels = 2)
+
+set.seed(2)
+roc_res <- metric_set(roc_auc)
+svm_initial <- 
+  svm_wflow %>% 
+  tune_grid(resamples = cell_folds, grid = start_grid, metrics = roc_res)
+
+collect_metrics(svm_initial)
+```
+
+
+## BAYESIAN OPTIMIZATION
+
+### A GAUSSIAN PROCESS MODEL
+
+### ACQUISITION FUNCTIONS
+
+
+
+### THE tune_bayes() FUNCTION
+
+```{r}
+ctrl <- control_bayes(verbose = TRUE)
+
+set.seed(1234)
+svm_bo <-
+  svm_wflow %>%
+  tune_bayes(
+    resamples = cell_folds,
+    metrics = roc_res,
+    initial = svm_initial,
+    param_info = svm_param,
+    iter = 25,
+    control = ctrl
+  )
+```
+
+
+```{r}
+autoplot(svm_bo, type = "performance")
+```
+
+```{r}
+autoplot(svm_bo, type = "parameters")
+```
+
+
+
+## SIMULATED ANNEALING
+
+
+
+
+
+
+### ASPECTS OF SIMULATED ANNEALING SEARCH
+
+
+
+
+### THE tune_sim_anneal() FUNCTION
+
+
+```{r}
+ctrl_sa <- control_sim_anneal(verbose = TRUE, no_improve = 10L)
+
+set.seed(1234)
+svm_sa <-
+  svm_wflow %>%
+  tune_sim_anneal(
+    resamples = cell_folds,
+    metrics = roc_res,
+    initial = svm_initial,
+    param_info = svm_param,
+    iter = 50,
+    control = ctrl_sa
+  )
+```
+
+
+
+
+## CHAPTER SUMMARY
+
+

@@ -1,0 +1,208 @@
+---
+title: 'Predict availability in #TidyTuesday water sources with random forest models'
+author: "Xiaochi"
+date: "09/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+water_raw <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-05-04/water.csv")
+water_raw
+```
+
+```{r}
+water_raw %>%
+  filter(
+    country_name == "Sierra Leone",
+    lat_deg > 0, lat_deg < 15, lon_deg < 0,
+    status_id %in% c("y", "n")
+  ) %>%
+  ggplot(aes(lon_deg, lat_deg, color = status_id)) +
+  geom_point(alpha = 0.1) +
+  coord_fixed() +
+  guides(color = guide_legend(override.aes = list(alpha = 1)))
+```
+
+```{r}
+water <- water_raw %>%
+  filter(
+    country_name == "Sierra Leone",
+    lat_deg > 0, lat_deg < 15, lon_deg < 0,
+    status_id %in% c("y", "n")
+  ) %>%
+  mutate(pay = case_when(
+    str_detect(pay, "^No") ~ "no",
+    str_detect(pay, "^Yes") ~ "yes",
+    is.na(pay) ~ pay,
+    TRUE ~ "it's complicated"
+  )) %>%
+  select(-country_name, -status, -report_date) %>%
+  mutate_if(is.character, as.factor)
+
+water %>%
+  ggplot(aes(install_year, y = ..density.., fill = status_id)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  labs(fill = "Water available?")
+```
+
+
+```{r}
+water %>%
+  ggplot(aes(y = pay, fill = status_id)) +
+  geom_bar(position = "fill") +
+  labs(fill = "Water available?")
+```
+
+```{r}
+library(tidymodels)
+
+set.seed(123)
+water_split <- initial_split(water, strata = status_id)
+water_train <- training(water_split)
+water_test <- testing(water_split)
+
+set.seed(234)
+water_folds <- vfold_cv(water_train, strata = status_id)
+water_folds
+```
+
+
+```{r}
+usemodels::use_ranger(status_id ~ ., data = water_train)
+```
+
+```{r}
+library(themis)
+
+ranger_recipe <-
+  recipe(formula = status_id ~ ., data = water_train) %>%
+  update_role(row_id, new_role = "id") %>%
+  step_unknown(all_nominal_predictors()) %>%
+  step_other(all_nominal_predictors(), threshold = 0.03) %>%
+  step_impute_linear(install_year) %>%
+  step_downsample(status_id)
+
+ranger_spec <-
+  rand_forest(trees = 1000) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+ranger_workflow <-
+  workflow() %>%
+  add_recipe(ranger_recipe) %>%
+  add_model(ranger_spec)
+
+doParallel::registerDoParallel()
+set.seed(74403)
+ranger_rs <-
+  fit_resamples(ranger_workflow,
+    resamples = water_folds,
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+
+```{r}
+collect_metrics(ranger_rs)
+
+collect_predictions(ranger_rs) %>%
+  group_by(id) %>%
+  roc_curve(status_id, .pred_n) %>%
+  autoplot()
+```
+
+
+```{r}
+conf_mat_resampled(ranger_rs, tidy = FALSE) %>%
+  autoplot()
+```
+
+
+
+# IKEA
+
+```{r}
+library(tidyverse)
+ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
+
+ikea %>%
+  select(X1, price, depth:width) %>%
+  pivot_longer(depth:width, names_to = "dim") %>%
+  ggplot(aes(value, price, color = dim)) +
+  geom_point(alpha = 0.4, show.legend = FALSE) +
+  scale_y_log10() +
+  facet_wrap(~ dim, scales = "free_x") +
+  labs(x = NULL)
+
+ikea_df <- ikea %>%
+  select(price, name, category, depth, height, width) %>%
+  mutate(price = log10(price)) %>%
+  mutate_if(is.character, factor)
+
+library(tidymodels)
+
+set.seed(123)
+ikea_split <- initial_split(ikea_df, strata = price)
+ikea_train <- training(ikea_split)
+ikea_test <- testing(ikea_split)
+
+set.seed(234)
+ikea_folds <- bootstraps(ikea_train, strata = price)
+ikea_folds
+
+library(usemodels)
+use_ranger(price ~ ., data = ikea_train)
+
+
+library(textrecipes)
+
+ranger_recipe <-
+  recipe(formula = price ~ ., data = ikea_train) %>%
+  step_other(name, category, threshold = 0.01) %>%
+  step_clean_levels(name, category) %>%
+  step_knnimpute(depth, height, width)
+
+ranger_spec <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>%
+  set_mode("regression") %>%
+  set_engine("ranger")
+
+ranger_workflow <-
+  workflow() %>%
+  add_recipe(ranger_recipe) %>%
+  add_model(ranger_spec)
+
+set.seed(8577)
+doParallel::registerDoParallel()
+ranger_tune <-
+  tune_grid(ranger_workflow,
+    resamples = ikea_folds,
+    grid = 11
+  )
+
+show_best(ranger_tune, metric = "rmse")
+show_best(ranger_tune, metric = "rsq")
+autoplot(ranger_tune)
+
+final_rf <- ranger_workflow %>%
+  finalize_workflow(select_best(ranger_tune))
+
+final_rf
+
+ikea_fit <- last_fit(final_rf, ikea_split)
+ikea_fit
+
+collect_metrics(ikea_fit)
+
+collect_predictions(ikea_fit) %>%
+  ggplot(aes(price, .pred)) +
+  geom_abline(lty = 2, color = "gray50") +
+  geom_point(alpha = 0.5, color = "midnightblue") +
+  coord_fixed()
+```
+

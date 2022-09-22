@@ -1,0 +1,59 @@
+---
+title: "The Ames housing data"
+author: "Xiaochi"
+date: "14/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(modeldata) # This is also loaded by the tidymodels package
+library(skimr)
+```
+
+# The Ames housing data
+
+```{r}
+data(ames)
+ames
+```
+
+
+## EXPLORING IMPORTANT FEATURES
+
+```{r}
+ggplot(ames, aes(x = Sale_Price)) + 
+  geom_histogram(bins = 50)
+
+ggplot(ames, aes(x = Sale_Price)) + 
+  geom_histogram(bins = 50) +
+  scale_x_log10()
+```
+
+
+```{r}
+ames %>% 
+  select(Sale_Price)
+
+ames <- ames %>% mutate(Sale_Price = log10(Sale_Price))
+
+ames %>% 
+  select(Sale_Price)
+```
+
+
+
+
+## CHAPTER SUMMARY
+
+```{r}
+library(tidymodels)
+data(ames)
+ames <- ames %>% 
+  mutate(Sale_Price = log10(Sale_Price))
+```
+
+
+
