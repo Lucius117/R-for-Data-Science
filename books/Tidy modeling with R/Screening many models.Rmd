@@ -240,3 +240,5 @@ full_results_time
 ```
 
 
+edits from Mac
+
