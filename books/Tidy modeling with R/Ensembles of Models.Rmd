@@ -1,13 +1,85 @@
 ---
 title: "Ensembles of Models"
-author: "Xiaochi"
-date: "2022-09-22"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, paged.print = FALSE)
+library(tidyverse)
+library(tidymodels)
+
+race_results = read_rds("race_results.rds")
 ```
 
+
+## CREATING THE TRAINING SET FOR STACKING
+
+```{r}
+race_results
+```
+
+```{r}
+library(stacks)
+
+concrete_stack <- 
+  stacks() %>% 
+  add_candidates(race_results)
+
+concrete_stack
+```
+
+
+## BLEND THE PREDICTIONS
+
+
+```{r}
+set.seed(2001)
+ens <- blend_predictions(concrete_stack)
+ens
+```
+
+```{r}
+autoplot(ens)
+```
+
+```{r}
+set.seed(2002)
+ens <- blend_predictions(concrete_stack, penalty = 10^seq(-2, -0.5, length = 20))
+ens
+```
+
+```{r}
+autoplot(ens)
+```
+
+```{r}
+autoplot(ens, "weights") +
+  geom_text(aes(x = weight + 0.01, label = model), hjust = 0) + 
+  theme(legend.position = "none") +
+  lims(x = c(-0.01, 0.8))
+```
+
+
+## FIT THE MEMBER MODELS
+
+```{r}
+ens
+ens <- fit_members(ens)
+ens
+```
+
+
+## TEST SET RESULTS
+
+```{r}
+reg_metrics <- metric_set(rmse, rsq)
+
+ens_test_pred <- 
+  predict(ens, concrete_test) %>% 
+  bind_cols(concrete_test)
+
+ens_test_pred %>% 
+  reg_metrics(compressive_strength, .pred)
+```
 
 Hello
