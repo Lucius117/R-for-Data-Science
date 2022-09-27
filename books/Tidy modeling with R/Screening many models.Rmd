@@ -249,6 +249,7 @@ grid_results
 ```
 
 
+
 ```{r}
 grid_results %>% 
    rank_results() %>% 
@@ -256,9 +257,7 @@ grid_results %>%
    select(model, .config, rmse = mean, rank)
 ```
 
-```{r}
-252 * 50
-```
+
 
 ```{r}
 autoplot(
