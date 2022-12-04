@@ -3308,7 +3308,7 @@ explainer_gbm <- explain(model = gbm_model,
 ```
 
 
-### Assessing the models
+### Assessment
 
 
 ```{r}
@@ -3517,7 +3517,199 @@ drf_final <- h2o.grid(algorithm = "randomForest",
 
 
 ```{r}
+# Get the grid results, sorted by AUC 
+drf_grid_perf_final <- 
+  h2o.getGrid(grid_id = "drf_grid_final",
+               sort_by = "AUC",
+               decreasing = TRUE)
+
+# Fetch the top DRF model, chosen by validation AUC
+drf_final <- 
+  h2o.getModel(drf_grid_perf_final@model_ids[[1]])
 ```
+
+
+```{r}
+# set path to get around model path being different from project path
+path = "model/"
+
+# Save Final RF model
+h2o.saveModel(drf_final, path)
+```
+
+### Assessment
+
+```{r}
+vip::vip(drf_final, num_features = 12) +
+  ggtitle("Variable Importance", "") + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+h2o.connect(port = 16755)
+drf_final = h2o.upload_model("model/drf_grid_final_model_22")
+drf_model = h2o.upload_model("model/drf_grid_model_4")
+
+drf_final %>% h2o.performance(newdata = test_tbl %>% as.h2o()) %>% h2o.auc()
+
+drf_model %>% h2o.performance(newdata = test_tbl %>% as.h2o()) %>% h2o.auc()
+```
+
+
+
+```{r}
+# convert feature variables to a data frame
+x_final <- test_tbl %>% select(-c(subscribed, age, housing, loan, campaign,
+                                     previous, cons_price_idx, emp_var_rate)) %>% as_tibble()
+
+# change response variable to a numeric binary vector
+y_final <- as.vector(as.numeric(as.character(test_tbl$subscribed)))
+
+
+# create custom predict function
+pred <- function(model, newdata)  {
+  results <- as.data.frame(h2o.predict(model, newdata %>% as.h2o()))
+  return(results[[3L]])
+}
+
+# final random forest model explainer
+explainer_final <- explain(model = drf_final, 
+                           type = "classification",
+                           data = x_final,
+                           y = y_final,
+                           predict_function = pred,
+                           label = "h2o_drf")
+```
+
+
+```{r}
+# compute PDP for a given variable
+model_profile(explainer_final, variable = "nr_employed", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r}
+model_profile(explainer_final, variable = "euribor3m", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "month", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "job", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "pdays", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "cons_conf_idx", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "education", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "day_of_week", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "poutcome", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "contact", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "marital", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+
+```{r, eval=T}
+model_profile(explainer_final, variable = "default", type = "partial") %>% 
+  plot() + 
+  theme_minimal() +
+  theme(plot.title    = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+
+
+
+One final thing: don’t forget to shut-down the h2o instance when you’re done!
+
+```{r, eval=TRUE}
+h2o.shutdown(prompt = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
