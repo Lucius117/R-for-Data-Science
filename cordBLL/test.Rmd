@@ -11,6 +11,7 @@ library(tidymodels)
 library(tidyverse)
 library(h2o)
 library(DataExplorer)
+library(DALEX)
 ```
 
 # AutoML
@@ -3248,6 +3249,275 @@ h2o.saveModel(gbm_model, path)
 
 
 ## Performance assessment
+
+
+```{r}
+h2o.init(port = 16755)
+```
+
+
+```{r}
+h2o.connect(port = 16755)
+
+glm_model = h2o.upload_model("model/gbm_grid_model_8")
+drf_model = h2o.upload_model("model/drf_grid_model_4")
+gbm_model = h2o.upload_model("model/GLM_model_R_1670120587968_1")
+```
+
+```{r}
+# convert feature variables to a data frame - tibble is also a data frame 
+x_valid <- test_tbl %>% select(-subscribed) %>% as_tibble()
+
+# change response variable to a numeric binary vector
+y_valid <- as.vector(as.numeric(as.character(test_tbl$subscribed)))
+
+# create custom predict function
+pred <- function(model, newdata)  {
+  results <- as.data.frame(h2o.predict(model, newdata %>% as.h2o()))
+  return(results[[3L]])
+}
+
+h2o.predict(glm_model, x_valid %>% as.h2o())
+```
+
+
+```{r}
+# generalised linear model explainer
+explainer_glm <- explain(model = glm_model, 
+                         type = "classification",
+                         data = x_valid, # test set
+                         y = y_valid,
+                         predict_function = pred,
+                         label = "h2o_glm")
+
+# random forest model explainer
+explainer_drf <- explain(model = drf_model, 
+                         type = "classification",
+                         data = x_valid,
+                         y = y_valid,
+                         predict_function = pred,
+                         label = "h2o_drf")
+
+# gradient boosting machine explainer
+explainer_gbm <- explain(model = gbm_model, 
+                         type = "classification",
+                         data = x_valid,
+                         y = y_valid,
+                         predict_function = pred,
+                         label = "h2o_gbm")
+```
+
+
+### Assessing the models
+
+
+```{r}
+model_performance(explainer_glm)
+model_performance(explainer_drf)
+model_performance(explainer_gbm)
+```
+
+
+```{r}
+# compute and assign residuals to an object
+resids_glm <- model_performance(explainer_glm)
+resids_drf <- model_performance(explainer_drf)
+resids_gbm <- model_performance(explainer_gbm)
+
+# compare residuals plots
+p1 <- plot(resids_glm, resids_drf, resids_gbm) +
+  theme_minimal() +
+  theme(legend.position = 'bottom',
+        plot.title = element_text(hjust = 0.5)) + 
+  labs(y = '')
+
+
+p2 <- plot(resids_glm, resids_drf, resids_gbm, geom = "boxplot") +
+  theme_minimal() +
+  theme(legend.position = 'bottom',
+        plot.title = element_text(hjust = 0.5)) 
+
+gridExtra::grid.arrange(p2, p1, nrow = 1)
+```
+
+```{r}
+eva_glm <- DALEX::model_performance(explainer_glm)
+eva_dfr <- DALEX::model_performance(explainer_drf)
+eva_gbm <- DALEX::model_performance(explainer_gbm)
+
+plot(eva_glm, eva_dfr, eva_gbm, geom = "roc") +
+  ggtitle("ROC Curves - All Models", "AUC_glm = 0.750  AUC_drf = 0.799  AUC_gbm = 0.798") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+# measure execution time
+tictoc::tic()
+
+# compute permutation-based variable importance
+vip_glm <- feature_importance(explainer_glm,
+                              n_sample = 100,
+                              B = 5,
+                              loss_function = loss_root_mean_square) 
+
+vip_drf <- feature_importance(explainer_drf,
+                              n_sample = 100,
+                              B = 5,
+                               loss_function = loss_root_mean_square)
+
+vip_gbm <- feature_importance(explainer_gbm,
+                              n_sample = 100,
+                              B = 5,
+                              loss_function = loss_root_mean_square)
+
+# show total execution time
+tictoc::toc()
+```
+
+
+
+```{r fig.width=7, fig.height=7}
+# plotting top 10 feature only for clarity of reading
+plot(vip_glm, vip_drf, vip_gbm, max_vars = 10) +
+  ggtitle("Permutation variable importance") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+
+```{r}
+# compute PDP for a given variable
+pdp_glm  <- model_profile(explainer_glm, variable = "nr_employed", type = "partial")
+pdp_drf  <- model_profile(explainer_drf, variable = "nr_employed", type = "partial")
+pdp_gbm  <- model_profile(explainer_gbm, variable = "nr_employed", type = "partial")
+
+plot(pdp_glm$agr_profiles, pdp_drf$agr_profiles, pdp_gbm$agr_profiles) +
+  ggtitle("Contrastive Partial Dependence Profiles", "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+# compute PDP for a given variable
+pdp_glm <- model_profile(explainer_glm, variable = "age", type = "partial")
+pdp_drf <- model_profile(explainer_drf, variable = "age", type = "partial")
+pdp_gbm <- model_profile(explainer_gbm, variable = "age", type = "partial")
+
+plot(pdp_glm$agr_profiles, pdp_drf$agr_profiles, pdp_gbm$agr_profiles) +
+  ggtitle("Contrastive Partial Dependence Profiles") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+# compute PDP for a given variable
+pdp_glm <- model_profile(explainer_glm, variable = "poutcome", type = "partial")
+pdp_drf <- model_profile(explainer_drf, variable = "poutcome", type = "partial")
+pdp_gbm <- model_profile(explainer_gbm, variable = "poutcome", type = "partial")
+
+plot(pdp_glm$agr_profiles, pdp_drf$agr_profiles, pdp_gbm$agr_profiles) +
+  ggtitle("Contrastive Partial Dependence Profiles", "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+# compute PDP for a given variable
+pdp_glm <- model_profile(explainer_glm, variable = "month", type = "partial")
+pdp_drf <- model_profile(explainer_drf, variable = "month", type = "partial")
+pdp_gbm <- model_profile(explainer_gbm, variable = "month", type = "partial")
+
+plot(pdp_glm$agr_profiles, pdp_drf$agr_profiles, pdp_gbm$agr_profiles) +
+  ggtitle("Contrastive Partial Dependence Profiles", "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## Final model
+
+```{r}
+h2o.init(port = 16755)
+h2o.shutdown()
+```
+
+
+
+```{r}
+data_final = read_rds("data/data_final.rds")
+
+data_final %>% 
+  select(subscribed) %>% 
+  plot_bar()
+```
+
+```{r}
+set.seed(seed = 1975) 
+
+train_test_split <- rsample::initial_split(data = data_final,
+                                           prop = 0.80) 
+
+train_test_split
+
+train_tbl <- train_test_split %>% rsample::training() 
+test_tbl  <- train_test_split %>% rsample::testing() 
+```
+
+
+```{r}
+# response variable remains unaltered
+y <- "subscribed"
+
+# predictors set: remove response variable and 7 predictors
+x_final <- setdiff(names(train_tbl %>% 
+                           select(-c(age, housing, loan, campaign, previous,
+                                     cons_price_idx, emp_var_rate)) %>% 
+                           as.h2o()), y)
+```
+
+
+```{r}
+# DRF hyperparameters
+hyper_params_drf <- list(mtries = seq(2, 5, by = 1), # the columns to randomly select on each node of the tree 
+                         sample_rate = c(0.65, 0.8, 0.95), # the row sampling rate for each tree
+                         col_sample_rate_per_tree = c(0.5, 0.9, 1.0), # the column sampling for each tree
+                         max_depth = seq(1, 30, by = 3), # the maximum tree depth
+                         min_rows = c(1, 2, 5, 10) #  the minimum number of observations per leaf
+                         )
+
+
+
+search_criteria_all <- list(strategy = "RandomDiscrete",
+                            stopping_metric = "AUC",    
+                            stopping_rounds = 10,
+                            stopping_tolerance = 0.0001,
+                            max_runtime_secs = 60 * 60)
+
+# random forest model
+drf_final <- h2o.grid(algorithm = "randomForest", 
+                      x = x_final, 
+                      y = y,
+                      training_frame  = train_tbl %>% as.h2o(),
+                      balance_classes = TRUE, 
+                      nfolds = 10,
+                      ntrees = 1000,
+                      grid_id = "drf_grid_final",
+                      hyper_params = hyper_params_drf,
+                      search_criteria = search_criteria_all,
+                      seed = 1975)
+```
+
+
+```{r}
+```
 
 
 
