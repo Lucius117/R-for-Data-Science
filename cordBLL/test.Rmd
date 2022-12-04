@@ -1,0 +1,3530 @@
+---
+title: "test for pregnancy study"
+author: "Xiaochi"
+date: "2022-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidymodels)
+library(tidyverse)
+library(h2o)
+library(DataExplorer)
+```
+
+# AutoML
+
+```{r}
+# Start the H2O cluster (locally)
+h2o.init()
+
+# Import a sample binary outcome train/test set into H2O
+train <- h2o.importFile("https://s3.amazonaws.com/erin-data/higgs/higgs_train_10k.csv")
+test <- h2o.importFile("https://s3.amazonaws.com/erin-data/higgs/higgs_test_5k.csv")
+
+
+# Identify predictors and response
+y <- "response"
+x <- setdiff(names(train), y)
+
+# For binary classification, response should be a factor
+train[, y] <- as.factor(train[, y])
+test[, y] <- as.factor(test[, y])
+
+# Run AutoML for 20 base models
+aml <- h2o.automl(x = x,
+                  y = y,
+                  training_frame = train,
+                  max_models = 20,
+                  seed = 1)
+```
+
+```{r}
+aml
+aml@leader
+```
+
+```{r}
+h2o.predict(aml, test)
+h2o.predict(aml@leader, test)
+```
+
+
+
+
+
+
+
+
+
+## basic use
+
+```{r}
+library(h2o)
+
+# Start the H2O cluster (locally)
+h2o.init()
+
+# Import a sample binary outcome train/test set into H2O
+train <- h2o.importFile("https://s3.amazonaws.com/erin-data/higgs/higgs_train_10k.csv")
+test <- h2o.importFile("https://s3.amazonaws.com/erin-data/higgs/higgs_test_5k.csv")
+
+# Identify predictors and response
+y <- "response"
+x <- setdiff(names(train), y)
+
+# For binary classification, response should be a factor
+train[, y] <- as.factor(train[, y])
+test[, y] <- as.factor(test[, y])
+
+# Run AutoML for 20 base models
+aml <- h2o.automl(x = x,
+                  y = y,
+                  training_frame = train,
+                  max_models = 20,
+                  seed = 1)
+
+# View the AutoML Leaderboard
+lb <- aml@leaderboard
+
+# To generate predictions on a test set, you can make predictions directly on the `H2OAutoML` object or on the leader model object directly
+pred <- h2o.predict(aml, test)
+# or:
+pred <- h2o.predict(aml@leader, test)
+
+# Get leaderboard with all possible columns
+lb <- h2o.get_leaderboard(object = aml, extra_columns = "ALL")
+lb
+```
+
+```{r}
+# Get the best model using the metric
+m <- aml@leader
+# this is equivalent to
+m <- h2o.get_best_model(aml)
+
+
+# Get the best model using a non-default metric
+m <- h2o.get_best_model(aml, criterion = "logloss")
+
+# Get the best XGBoost model using default sort metric
+xgb <- h2o.get_best_model(aml, algorithm = "xgboost")
+
+# Get the best XGBoost model, ranked by logloss
+xgb <- h2o.get_best_model(aml, algorithm = "xgboost", criterion = "logloss")
+```
+
+
+## regression
+
+```{r}
+# Use local data file or download from GitHub
+docker_data_path <- "/home/h2o/data/automl/powerplant_output.csv"
+if (file.exists(docker_data_path)) {
+  data_path <- docker_data_path
+} else {
+  data_path <- "https://github.com/h2oai/h2o-tutorials/raw/master/h2o-world-2017/automl/data/powerplant_output.csv"
+}
+
+# Load data into H2O
+df <- h2o.importFile(data_path)
+
+df
+
+y <- "HourlyEnergyOutputMW"
+
+splits <- h2o.splitFrame(df, ratios = 0.8, seed = 1)
+train <- splits[[1]]
+test <- splits[[2]]
+
+aml <- h2o.automl(y = y,
+                  training_frame = train,
+                  leaderboard_frame = test,
+                  max_runtime_secs = 60,
+                  seed = 1,
+                  project_name = "powerplant_lb_frame")
+
+aml2 <- h2o.automl(y = y,
+                   training_frame = df,
+                   max_runtime_secs = 60,
+                   seed = 1,
+                   project_name = "powerplant_full_data")
+```
+
+```{r}
+print(aml@leaderboard)
+print(aml2@leaderboard)
+```
+
+```{r}
+pred <- h2o.predict(aml, test)
+
+```
+
+
+## classification
+
+```{r}
+h2o.init()
+```
+
+```{r}
+# Use local data file or download from GitHub
+docker_data_path <- "/home/h2o/data/automl/product_backorders.csv"
+if (file.exists(docker_data_path)) {
+  data_path <- docker_data_path
+} else {
+  data_path <- "https://github.com/h2oai/h2o-tutorials/raw/master/h2o-world-2017/automl/data/product_backorders.csv"
+}
+
+# Load data into H2O
+df <- h2o.importFile(data_path)
+
+df
+```
+
+```{r}
+h2o.describe(df)
+
+y <- "went_on_backorder"
+x <- setdiff(names(df), c(y, "sku"))
+
+aml <- h2o.automl(y = y,
+                  x = x,
+                  training_frame = df,
+                  max_models = 10,
+                  seed = 1)
+
+lb <- aml@leaderboard
+lb
+print(lb, n = nrow(lb))
+```
+
+
+```{r}
+# Get model ids for all models in the AutoML Leaderboard
+model_ids <- as.data.frame(aml@leaderboard$model_id)[,1]
+
+# Get the "All Models" Stacked Ensemble model
+se <- h2o.getModel(grep("StackedEnsemble_AllModels", model_ids, value = TRUE)[1])
+
+# Get the Stacked Ensemble metalearner model
+metalearner <- h2o.getModel(se@model$metalearner$name)
+```
+
+
+```{r}
+h2o.varimp(metalearner)
+h2o.varimp_plot(metalearner)
+```
+
+
+# Metrics
+
+## classification
+
+```{r}
+h2o.init()
+
+# This dataset is used to classify whether a flight will be delayed 'YES' or not "NO"
+airlines <-  h2o.importFile("http://s3.amazonaws.com/h2o-public-test-data/smalldata/airlines/allyears2k_headers.zip")
+airlines
+
+airlines %>% 
+  as_tibble() -> tb_airlines
+
+tb_airlines$IsDepDelayed %>% 
+  levels()
+
+tb_airlines %>% 
+  select(IsDepDelayed) %>% 
+  plot_bar()
+```
+
+
+```{r}
+# convert columns to factors
+airlines["Year"] <- as.factor(airlines["Year"])
+airlines["Month"] <- as.factor(airlines["Month"])
+airlines["DayOfWeek"] <- as.factor(airlines["DayOfWeek"])
+airlines["Cancelled"] <- as.factor(airlines["Cancelled"])
+airlines['FlightNum'] <- as.factor(airlines['FlightNum'])
+
+# set the predictor names and the response column name
+predictors <- c("Origin", "Dest", "Year", "UniqueCarrier",
+                "DayOfWeek", "Month", "Distance", "FlightNum")
+response <- "IsDepDelayed"
+
+# split into train and validation
+airlines_splits <- h2o.splitFrame(data =  airlines, ratios = 0.8, seed = 1234)
+train <- airlines_splits[[1]]
+valid <- airlines_splits[[2]]
+
+# build a model
+airlines_gbm <- h2o.gbm(x = predictors,
+                        y = response,
+                        training_frame = train,
+                        validation_frame = valid,
+                        sample_rate = 0.7,
+                        seed = 1234)
+
+# retrieve the model performance
+perf <- h2o.performance(airlines_gbm, valid)
+perf
+```
+```{r}
+h2o.connect()
+```
+
+
+
+### Gini
+
+```{r}
+# retrieve the gini value for the performance object:
+h2o.giniCoef(perf)
+```
+
+
+```{r}
+# retrieve the gini value for both the training and validation data:
+h2o.giniCoef(airlines_gbm, train = TRUE, valid = TRUE, xval = FALSE)
+```
+
+
+### Absolute MCC (Matthews Correlation Coefficient)
+
+
+```{r}
+# retrieve the mcc value for the performance object:
+h2o.mcc(perf)
+h2o.mcc(perf, thresholds = "max")
+h2o.mcc(perf, thresholds = 0.5)
+```
+
+### F1
+
+```{r}
+# retrieve the F1 value for the performance object:
+h2o.F1(perf)
+h2o.F1(perf, thresholds = "max")
+```
+
+### Accuracy
+
+```{r}
+# retrieve the Accuracy value for the performance object:
+h2o.accuracy(perf)
+```
+
+
+### logloss
+
+```{r}
+# retrieve the logloss value for the performance object:
+h2o.logloss(perf)
+```
+
+
+```{r}
+# retrieve the logloss value for both the training and validation data:
+h2o.logloss(airlines_gbm, train = TRUE, valid = TRUE, xval = FALSE)
+```
+
+### AUC
+
+```{r}
+# retrieve the AUC for the performance object:
+h2o.auc(perf)
+```
+
+```{r}
+# retrieve the AUC for both the training and validation data:
+h2o.auc(airlines_gbm, train = TRUE, valid = TRUE, xval = FALSE)
+```
+
+
+### AUCPR
+
+```{r}
+# retrieve the AUCPR for the performance object:
+h2o.aucpr(perf)
+```
+
+```{r}
+# retrieve the AUCPR for both the training and validation data:
+h2o.aucpr(airlines_gbm, train = TRUE, valid = TRUE, xval = FALSE)
+```
+
+
+
+### Multinomial AUC
+
+```{r}
+h2o.init()
+
+# import the cars dataset:
+cars <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/junit/cars_20mpg.csv")
+
+# set the predictor names and the response column name
+predictors <- c("displacement", "power", "weight", "acceleration", "year")
+response <- "cylinders"
+cars[,response] <- as.factor(cars[response])
+
+# split into train and validation sets
+cars_splits <- h2o.splitFrame(data =  cars, ratios = 0.8, seed = 1234)
+train <- cars_splits[[1]]
+valid <- cars_splits[[2]]
+
+# build and train the model:
+cars_gbm <- h2o.gbm(x = predictors,
+                    y = response,
+                    training_frame = train,
+                    validation_frame = valid,
+                    distribution = "multinomial",
+                    seed = 1234)
+```
+
+```{r}
+sys.ai.h2o.auc.maxClasses = 10
+cars_gbm.auc()
+cars_gbm
+# get result on training data from h2o
+h2o_auc_table <- cars_gbm.multinomial_auc_table(train)
+print(h2o_auc_table)
+```
+
+### Multinomial AUCPR
+
+```{r}
+h2o.init()
+
+# import the cars dataset:
+cars <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/junit/cars_20mpg.csv")
+
+# set the predictor names and the response column name
+predictors <- c("displacement", "power", "weight", "acceleration", "year")
+response <- "cylinders"
+cars[,response] <- as.factor(cars[response])
+
+# split into train and validation sets
+cars_splits <- h2o.splitFrame(data =  cars, ratios = 0.8, seed = 1234)
+train <- cars_splits[[1]]
+valid <- cars_splits[[2]]
+
+# build and train the model:
+cars_gbm <- h2o.gbm(x = predictors,
+                    y = response,
+                    training_frame = train,
+                    validation_frame = valid,
+                    distribution = "multinomial",
+                    seed = 1234)
+```
+
+```{r}
+# get result on training data from h2o
+h2o_aucpr_table <- cars_gbm.multinomial_aucpr_table(train)
+print(h2o_aucpr_table)
+```
+
+```{r}
+# get default value
+h2o_default_aucpr <- cars_gbm.aucpr()
+print(h2o_default_aucpr)
+```
+
+
+
+
+
+# Stopping Metrics
+
+## Misclassification
+
+
+```{r}
+# import the airlines dataset:
+airlines <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/airlines/allyears2k_headers.zip")
+
+# set the factors:
+airlines["Year"] <- as.factor(airlines["Year"])
+airlines["Month"] <- as.factor(airlines["Month"])
+airlines["DayOfWeek"] <- as.factor(airlines["DayOfWeek"])
+airlines["Cancelled"] <- as.factor(airlines["Cancelled"])
+airlines['FlightNum'] <- as.factor(airlines['FlightNum'])
+
+airlines
+```
+
+
+```{r}
+# set the predictors and response columns:
+predictors <- c("Origin", "Dest", "Year", "UniqueCarrier", "DayOfWeek", "Month", "Distance", "FlightNum")
+response <- "IsDepDelayed"
+
+# split the data into training and validation sets:
+airlines_splits <- h2o.splitFrame(data =  airlines, ratios = 0.8, seed = 1234)
+train <- airlines_splits[[1]]
+valid <- airlines_splits[[2]]
+```
+
+
+
+```{r}
+# build and train the model using the misclassification stopping metric:
+airlines_gbm <- h2o.gbm(x = predictors,
+                        y = response,
+                        training_frame = train,
+                        validation_frame = valid,
+                        stopping_metric = "misclassification",
+                        stopping_rounds = 3,
+                        stopping_tolerance = 1e-2,
+                        seed = 1234)
+
+# retrieve the auc value:
+h2o.auc(airlines_gbm, valid = TRUE)
+```
+
+## Lift Top Group
+
+```{r}
+# import the airlines dataset:
+airlines <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/airlines/allyears2k_headers.zip")
+
+# set the factors:
+airlines["Year"] <- as.factor(airlines["Year"])
+airlines["Month"] <- as.factor(airlines["Month"])
+airlines["DayOfWeek"] <- as.factor(airlines["DayOfWeek"])
+airlines["Cancelled"] <- as.factor(airlines["Cancelled"])
+airlines['FlightNum'] <- as.factor(airlines['FlightNum'])
+
+airlines
+```
+
+
+```{r}
+# set the predictors and response columns:
+predictors <- c("Origin", "Dest", "Year", "UniqueCarrier",
+                "DayOfWeek", "Month", "Distance", "FlightNum")
+response <- "IsDepDelayed"
+
+# split the data into training and validation sets:
+airlines_splits <- h2o.splitFrame(data = airlines, ratios = 0.8, seed = 1234)
+train <- airlines_splits[[1]]
+valid <- airlines_splits[[2]]
+```
+
+```{r}
+# build and train the model using the lift_top_group stopping metric:
+airlines_gbm <- h2o.gbm(x = predictors,
+                        y = response,
+                        training_frame = train,
+                        validation_frame = valid,
+                        stopping_metric = "lift_top_group",
+                        stopping_rounds = 3,
+                        stopping_tolerance = 1e-2,
+                        seed = 1234)
+
+# retrieve the auc value:
+h2o.auc(airlines_gbm, valid = TRUE)
+```
+
+
+## Deviance
+
+```{r}
+# import the cars dataset:
+cars <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/junit/cars_20mpg.csv")
+cars
+```
+
+```{r}
+# set the predictors and response columns:
+predictors <- c("economy", "cylinders", "displacement", "power", "weight")
+response = "acceleration"
+
+#split the data into training and validation sets:
+cars_splits <- h2o.splitFrame(data = cars, ratio = 0.8, seed = 1234)
+train <- cars_splits[[1]]
+valid <- cars_splits[[2]]
+
+# build and train the model using the deviance stopping metric:
+cars_gbm <- h2o.gbm(x = predictors,
+                    y = response,
+                    training_frame = train,
+                    validation_frame = valid,
+                    stopping_metric = "deviance",
+                    stopping_rounds = 3,
+                    stopping_tolerance = 1e-2,
+                    seed = 1234)
+
+# retrieve the mse value:
+h2o.mse(cars_gbm, valid = TRUE)
+```
+
+
+
+
+## Mean-Per-Class-Error
+
+```{r}
+# import the cars dataset:
+cars <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/junit/cars_20mpg.csv")
+cars
+```
+
+```{r}
+# set the predictors and response columns:
+predictors <- c("economy", "cylinders", "displacement", "power", "weight")
+response = "acceleration"
+
+
+#split the data into training and validation sets:
+cars_splits <- h2o.splitFrame(data = cars, ratio = 0.8, seed = 1234)
+train <- cars_splits[[1]]
+valid <- cars_splits[[2]]
+
+# build and train the model using the mean_per_class_error stopping metric:
+cars_gbm <- h2o.gbm(x = predictors,
+                    y = response,
+                    training_frame = train,
+                    validation_frame = valid,
+                    stopping_metric = "mean_per_class_error",
+                    stopping_rounds = 3,
+                    stopping_tolerance = 1e-2,
+                    seed = 1234)
+
+# retrieve the mse value:
+h2o.mse(cars_gbm, valid = TRUE)
+```
+
+
+
+
+
+
+
+
+
+# Model Performance Graphs
+
+
+## Confusion Matrix
+
+
+```{r}
+# import the cars dataset:
+cars <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/junit/cars_20mpg.csv")
+
+# set the factor
+cars["cylinders"] = as.factor(cars["cylinders"])
+
+cars
+```
+
+
+```{r}
+# split the data into training and validation sets:
+cars_splits <- h2o.splitFrame(data = cars, ratio = 0.8, seed = 1234)
+train <- cars_splits[[1]]
+valid <- cars_splits[[2]]
+
+# set the predictors columns, response column, and distribution type:
+predictors <- c("displacement", "power", "weight", "acceleration", "year")
+response <- "cylinders"
+distribution <- "multinomial"
+
+# build and train the model:
+cars_gbm <- h2o.gbm(x = predictors,
+                    y = response,
+                    training_frame = train,
+                    validation_frame = valid,
+                    nfolds = 3,
+                    distribution = distribution)
+
+# build the confusion matrix:
+h2o.confusionMatrix(cars_gbm)
+```
+
+
+## ROC Curve
+
+
+```{r}
+# import the prostate dataset:
+pros <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/prostate/prostate.csv.zip")
+
+# set the factors:
+pros[, 2] <- as.factor(pros[, 2])
+pros[, 4] <- as.factor(pros[, 4])
+pros[, 5] <- as.factor(pros[, 5])
+pros[, 6] <- as.factor(pros[, 6])
+pros[, 9] <- as.factor(pros[, 9])
+
+pros
+```
+
+
+```{r}
+# split the data into training and validation sets:
+pros_splits <- h2o.splitFrame(data = pros, ratio = 0.8, seed = 1234)
+train <- pros_splits[[1]]
+valid <- pros_splits[[2]]
+
+# build and train the model:
+pros_gbm <- h2o.gbm(x = 3:9, y = 2,
+                    training_frame = train,
+                    validation_frame = valid,
+                    nfolds = 2)
+
+# build the roc curve:
+perf <- h2o.performance(pros_gbm, pros)
+plot(perf, type = "roc")
+```
+
+
+
+## AUCPR Curve
+
+
+```{r}
+# import the prostate dataset:
+pros <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/prostate/prostate.csv.zip")
+
+# set the factors:
+pros[, 2] <- as.factor(pros[, 2])
+pros[, 4] <- as.factor(pros[, 4])
+pros[, 5] <- as.factor(pros[, 5])
+pros[, 6] <- as.factor(pros[, 6])
+pros[, 9] <- as.factor(pros[, 9])
+
+pros
+```
+
+
+```{r}
+# set the predictors and response column:
+predictors <- c("AGE", "RACE", "DPROS", "DCAPS", "PSA", "VOL", "GLEASON")
+response <- "CAPSULE"
+
+# split the data into training and validation sets:
+pros_splits <- h2o.splitFrame(data = pros, ratio = 0.8, seed = 1234)
+train <- pros_splits[[1]]
+valid <- pros_splits[[2]]
+
+# build and train the model:
+glm_model <- h2o.glm(x=predictors, y=response,
+                     family="binomial", lambda=0,
+                     compute_p_values=TRUE,
+                     training_frame=train,
+                     validation_frame=valid)
+
+# build the precision recall curve:
+perf <- h2o.performance(glm_model, valid)
+plot(perf, type = "pr")
+```
+
+
+
+
+
+
+
+
+# Tidymodel
+
+
+## rsample
+
+
+```{r}
+library(rsample)
+set.seed(8584)
+bt_resamples <- bootstraps(mtcars, times = 3)
+bt_resamples
+class(bt_resamples)
+```
+
+
+```{r}
+first_resample <- bt_resamples$splits[[1]]
+first_resample
+class(first_resample)
+dim(first_resample)
+```
+
+```{r}
+as.data.frame(first_resample)
+analysis(first_resample)
+
+as.data.frame(first_resample, data = "assessment")
+assessment(first_resample)
+```
+
+
+
+## parsnip
+
+### agua
+
+
+```{r}
+library(tidymodels)
+library(agua)
+library(ggplot2)
+theme_set(theme_bw())
+h2o_start()
+```
+
+```{r}
+data(concrete)
+set.seed(4595)
+concrete_split <- initial_split(concrete, strata = compressive_strength)
+concrete_train <- training(concrete_split)
+concrete_test <- testing(concrete_split)
+```
+
+
+```{r}
+# run for a maximum of 120 seconds
+auto_spec <-
+  auto_ml() %>%
+  set_engine("h2o", max_runtime_secs = 120, seed = 1) %>%
+  set_mode("regression")
+
+normalized_rec <-
+  recipe(compressive_strength ~ ., data = concrete_train) %>%
+  step_normalize(all_predictors())
+
+auto_wflow <-
+  workflow() %>%
+  add_model(auto_spec) %>%
+  add_recipe(normalized_rec)
+
+auto_fit <- fit(auto_wflow, data = concrete_train)
+
+auto_fit %>% 
+  class()
+
+auto_fit
+```
+
+
+```{r}
+extract_fit_parsnip(auto_fit)
+
+extract_fit_parsnip(auto_fit) %>% 
+  class()
+
+extract_fit_parsnip(auto_fit) %>% 
+  as_tibble()
+```
+
+```{r}
+# predict with the best model
+predict(auto_fit, new_data = concrete_test)
+```
+
+
+```{r}
+rank_results(auto_fit) %>%
+  filter(.metric == "mae") %>%
+  arrange(rank)
+
+collect_metrics(auto_fit, summarize = FALSE)
+
+tidy(auto_fit) %>%
+  mutate(
+    .predictions = map(.model, predict, new_data = head(concrete_test))
+  )
+```
+
+```{r}
+auto_fit %>%
+  extract_fit_parsnip() %>%
+  member_weights() %>%
+  unnest(importance) %>%
+  filter(type == "scaled_importance") %>%
+  ggplot() +
+  geom_boxplot(aes(value, algorithm)) +
+  scale_x_sqrt() +
+  labs(y = NULL, x = "scaled importance", title = "Member importance in stacked ensembles")
+```
+
+```{r}
+autoplot(auto_fit, type = "rank", metric = c("mae", "rmse")) +
+  theme(legend.position = "none")
+```
+```{r}
+1.19 - 0.7
+```
+
+
+```{r}
+# not run 
+auto_spec_refit <-
+  auto_ml() %>%
+  set_engine("h2o", 
+             max_runtime_secs = 300, 
+             save_data = TRUE,
+             keep_cross_validation_predictions = TRUE) %>%
+  set_mode("regression")
+
+auto_wflow_refit <-
+  workflow() %>%
+  add_model(auto_spec_refit) %>%
+  add_recipe(normalized_rec)
+
+first_auto <- fit(auto_wflow_refit, data = concrete_train)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(tidymodels)
+library(agua)
+library(h2o)
+tidymodels_prefer()
+```
+
+```{r}
+h2o_start()
+
+rand_forest(mtry = 3, trees = 1000) %>%
+  set_engine("h2o") %>%
+  set_mode("regression") -> spec
+
+set.seed(1)
+mod <- fit(spec, mpg ~ ., data = mtcars)
+mod
+
+# Predictions
+predict(mod, head(mtcars))
+
+# When done
+h2o_end()
+```
+
+
+
+```{r}
+library(tidymodels)
+library(agua)
+library(ggplot2)
+tidymodels_prefer()
+theme_set(theme_bw())
+
+# start h2o server
+h2o_start()
+
+
+data(concrete, package = "modeldata")
+concrete <-
+  concrete %>%
+  group_by(across(-compressive_strength)) %>%
+  summarize(compressive_strength = mean(compressive_strength),
+            .groups = "drop")
+
+concrete
+```
+
+```{r}
+set.seed(1501)
+concrete_split <- initial_split(concrete, strata = compressive_strength)
+concrete_train <- training(concrete_split)
+concrete_test  <- testing(concrete_split)
+
+rand_forest(mtry = 3, trees = 500) %>%
+  set_engine("h2o", histogram_type = "Random") %>% 
+  set_mode("regression") -> rf_spec
+
+recipe(compressive_strength ~ ., data = concrete_train) %>%
+  step_normalize(all_predictors()) -> normalized_rec
+
+workflow() %>% 
+  add_model(rf_spec) %>%
+  add_recipe(normalized_rec) -> rf_wflow
+
+rf_fit <- fit(rf_wflow, data = concrete_train)
+rf_fit
+
+predict(rf_fit, new_data = concrete_test)
+
+concrete_folds <-
+  vfold_cv(concrete_train, strata = compressive_strength)
+
+fit_resamples(rf_wflow, resamples = concrete_folds)
+
+library(vip)
+
+rf_fit %>% 
+  extract_fit_parsnip() %>% 
+  vip()
+```
+
+
+
+
+
+```{r}
+library(tidymodels)
+library(agua)
+library(ggplot2)
+theme_set(theme_bw())
+h2o_start()
+```
+
+
+
+
+```{r}
+data(concrete)
+set.seed(4595)
+concrete_split <- initial_split(concrete, strata = compressive_strength)
+concrete_train <- training(concrete_split)
+concrete_test <- testing(concrete_split)
+```
+
+
+
+```{r}
+# run for a maximum of 120 seconds
+auto_spec <-
+  auto_ml() %>%
+  set_engine("h2o", max_runtime_secs = 120, seed = 1) %>%
+  set_mode("regression")
+
+normalized_rec <-
+  recipe(compressive_strength ~ ., data = concrete_train) %>%
+  step_normalize(all_predictors())
+
+auto_wflow <-
+  workflow() %>%
+  add_model(auto_spec) %>%
+  add_recipe(normalized_rec)
+
+auto_fit <- fit(auto_wflow, data = concrete_train)
+
+extract_fit_parsnip(auto_fit)
+```
+
+
+```{r}
+# predict with the best model
+predict(auto_fit, new_data = concrete_test)
+
+rank_results(auto_fit) %>%
+  filter(.metric == "mae") %>%
+  arrange(rank)
+
+collect_metrics(auto_fit, summarize = FALSE)
+
+tidy(auto_fit) %>%
+  mutate(
+    .predictions = map(.model, predict, new_data = head(concrete_test))
+  )
+```
+
+
+```{r}
+auto_fit %>%
+  extract_fit_parsnip() %>%
+  member_weights() %>%
+  unnest(importance) %>%
+  filter(type == "scaled_importance") %>%
+  ggplot() +
+  geom_boxplot(aes(value, algorithm)) +
+  scale_x_sqrt() +
+  labs(y = NULL, x = "scaled importance", title = "Member importance in stacked ensembles")
+```
+
+
+```{r}
+autoplot(auto_fit, type = "rank", metric = c("mae", "rmse")) +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+# not run 
+auto_spec_refit <-
+  auto_ml() %>%
+  set_engine("h2o", 
+             max_runtime_secs = 300, 
+             save_data = TRUE,
+             keep_cross_validation_predictions = TRUE) %>%
+  set_mode("regression")
+
+
+auto_wflow_refit <-
+  workflow() %>%
+  add_model(auto_spec_refit) %>%
+  add_recipe(normalized_rec)
+
+first_auto <- fit(auto_wflow_refit, data = concrete_train)
+# fit another 60 seconds 
+second_auto <- refit(first_auto, max_runtime_secs = 60)
+```
+
+
+
+```{r}
+library(tidymodels)
+library(agua)
+library(ggplot2)
+theme_set(theme_bw())
+doParallel::registerDoParallel()
+h2o_start()
+data(ames)
+
+set.seed(4595)
+data_split <- ames %>%
+  mutate(Sale_Price = base::log10(Sale_Price)) %>%
+  initial_split(strata = Sale_Price)
+ames_train <- training(data_split)
+ames_test <- testing(data_split)
+cv_splits <- vfold_cv(ames_train, v = 10, strata = Sale_Price)
+
+ames_rec <-
+  recipe(Sale_Price ~ Gr_Liv_Area + Longitude + Latitude, data = ames_train) %>%
+  step_log(Gr_Liv_Area, base = 10) %>%
+  step_ns(Longitude, deg_free = tune("long df")) %>%
+  step_ns(Latitude, deg_free = tune("lat df"))
+
+lm_mod <- linear_reg(penalty = tune()) %>%
+  set_engine("h2o")
+
+lm_wflow <- workflow() %>%
+  add_model(lm_mod) %>%
+  add_recipe(ames_rec)
+
+grid <- lm_wflow %>%
+  extract_parameter_set_dials() %>%
+  grid_regular(levels = 5)
+
+
+ames_res <- tune_grid(
+  lm_wflow,
+  resamples = cv_splits,
+  grid = grid,
+  control = control_grid(save_pred = TRUE,
+                         backend_options = agua_backend_options(parallelism = 5))
+)
+
+ames_res
+```
+
+
+
+```{r}
+1899 * 4.7
+```
+
+
+
+
+## recipes
+
+```{r}
+library(recipes)
+data(ad_data, package = "modeldata")
+
+ad_rec <- recipe(Class ~ tau + VEGF, data = ad_data) %>%
+  step_normalize(all_numeric_predictors())
+
+ad_rec
+```
+
+
+
+```{r}
+library(recipes)
+library(rsample)
+library(modeldata)
+
+data("credit_data")
+
+set.seed(55)
+train_test_split <- initial_split(credit_data)
+
+credit_train <- training(train_test_split)
+credit_test <- testing(train_test_split)
+```
+
+```{r}
+vapply(credit_train, function(x) mean(!is.na(x)), numeric(1))
+```
+
+```{r}
+rec_obj <- recipe(Status ~ ., data = credit_train)
+rec_obj
+
+grep("impute_", ls("package:recipes"), value = TRUE)
+```
+
+```{r}
+imputed <- rec_obj %>%
+  step_impute_knn(all_predictors()) 
+imputed
+```
+
+```{r}
+ind_vars <- imputed %>%
+  step_dummy(all_nominal_predictors()) 
+ind_vars
+```
+
+```{r}
+standardized <- ind_vars %>%
+  step_center(all_numeric_predictors()) %>%
+  step_scale(all_numeric_predictors()) 
+standardized
+```
+
+```{r}
+trained_rec <- prep(standardized, training = credit_train)
+trained_rec
+```
+
+```{r}
+train_data <- bake(trained_rec, new_data = credit_train)
+test_data  <- bake(trained_rec, new_data = credit_test)
+
+class(test_data)
+test_data
+```
+
+```{r}
+trained_rec <- trained_rec %>%
+  check_missing(contains("Marital"))
+trained_rec
+```
+
+
+
+### roles
+
+```{r}
+recipe(Species ~ ., data = iris) %>% 
+  summary()
+
+
+
+recipe( ~ Species, data = iris) %>% 
+  summary()
+
+
+recipe(Sepal.Length + Sepal.Width ~ ., data = iris) %>% 
+  summary()
+```
+
+```{r}
+library(DataExplorer)
+iris %>% 
+  plot_missing()
+```
+
+
+
+```{r}
+library(tidymodels)
+
+linear_reg() %>% 
+  set_engine("lm") -> model
+
+# outcome: Sepal.Length
+recipe(Sepal.Length ~ Petal.Length + Petal.Width, data = iris) %>% 
+  step_naomit(has_role("outcome"), skip = FALSE) -> rec_1
+
+workflow() %>% 
+  add_recipe(rec_1) %>% 
+  add_model(model) %>% 
+  fit(data = iris)
+
+# outcome: Sepal.Width
+recipe(Sepal.Width ~ Petal.Length + Petal.Width, data = iris) %>% 
+  step_naomit(has_role("outcome"), skip = FALSE) -> rec_2
+
+workflow() %>% 
+  add_recipe(rec_2) %>% 
+  add_model(model) %>% 
+  fit(data = iris)
+
+# outcomes: Sepal.Length & Sepal.Width
+recipe(Sepal.Length + Sepal.Width ~ Petal.Length + Petal.Width, data = iris) %>% 
+  step_naomit(has_role("outcome"), skip = FALSE) -> rec_12
+
+workflow() %>% 
+  add_recipe(rec_12) %>% 
+  add_model(model) %>% 
+  fit(data = iris)
+```
+
+
+```{r}
+library(tidymodels)
+
+recipe(Sepal.Length + Sepal.Width ~ Petal.Length + Petal.Width, data = iris) %>% 
+  step_naomit(has_role("outcome"), skip = FALSE) %>% 
+  summary()
+```
+
+```{r}
+library(reprex)
+reprex()
+```
+
+
+
+```{r}
+multi_role <- recipe(HHV ~ ., data = biomass) %>% 
+  update_role(dataset, new_role = "dataset split variable") %>% 
+  update_role(sample, new_role = "sample ID") %>% 
+  # Roles below from https://wordcounter.net/random-word-generator
+  add_role(sample, new_role = "jellyfish") 
+
+multi_role %>% 
+  summary()
+
+multi_role %>%
+  update_role(sample, new_role = "flounder", old_role = "jellyfish") %>%
+  summary()
+
+multi_role %>% 
+  add_role(HHV, new_role = "nocenter") %>% 
+  step_center(all_predictors(), -has_role("nocenter")) %>% 
+  prep(training = biomass, retain = TRUE) %>% 
+  bake(new_data = NULL)
+```
+
+
+```{r}
+recipe(biomass) %>% 
+  summary()
+
+recipe(biomass) %>% 
+  update_role(contains("gen"), new_role = "lunchroom") %>% 
+  update_role(sample, HHV, new_role = "snail") %>% 
+  summary()
+```
+
+
+
+
+
+```{r}
+data(biomass)
+
+recipe(HHV ~ ., data = biomass) %>% 
+  update_role(dataset, new_role = "dataset split variable") %>% 
+  update_role(sample, new_role = "sample ID") %>% 
+  summary()
+
+recipe(HHV ~ ., data = biomass) %>% 
+  remove_role(sample, old_role = "predictor") %>% 
+  summary()
+```
+
+
+```{r}
+data(biomass, package = "modeldata")
+biomass_train <- biomass[1:100,]
+biomass_test <- biomass[101:200,]
+
+rec <- recipe(HHV ~ ., data = biomass_train) %>%
+  update_role(sample, new_role = "id variable") %>%
+  step_center(carbon)
+
+rec <- prep(rec, biomass_train)
+```
+
+
+
+
+## workflows
+
+```{r}
+library(recipes)
+library(parsnip)
+library(workflows)
+
+spline_cars <- recipe(mpg ~ ., data = mtcars) %>% 
+  step_ns(disp, deg_free = 10)
+
+bayes_lm <- linear_reg() %>% 
+  set_engine("stan")
+```
+
+
+```{r}
+spline_cars_prepped <- prep(spline_cars, mtcars)
+
+bayes_lm_fit <- fit(bayes_lm, mpg ~ ., data = juice(spline_cars_prepped))
+```
+
+```{r}
+car_wflow <- workflow() %>% 
+  add_recipe(spline_cars) %>% 
+  add_model(bayes_lm)
+
+car_wflow_fit <- fit(car_wflow, data = mtcars)
+```
+
+
+```{r}
+data("bivariate")
+
+bivariate_train
+bivariate_val
+bivariate_test
+
+ggplot(bivariate_train, aes(x = A, y = B, col = Class)) + 
+  geom_point(alpha = .3) + 
+  coord_equal(ratio = 20)
+```
+
+
+
+
+```{r}
+logistic_reg() %>%
+  set_engine("glm") -> logit_mod
+
+# Create a workflow with just the model. We will add to this as we go. 
+workflow() %>%
+  add_model(logit_mod) -> glm_workflow
+```
+
+
+```{r}
+glm_workflow %>%
+  # Add both predictors in
+  add_formula(Class ~ .) %>%
+  # Fit the model:
+  fit(data = bivariate_train) -> simple_glm
+
+
+simple_glm %>% 
+  predict(bivariate_val, type = "prob") %>%
+  bind_cols(bivariate_val) -> simple_glm_probs
+
+simple_glm_probs %>% 
+  roc_curve(Class, .pred_One) -> simple_glm_roc
+  
+simple_glm_roc %>% 
+  autoplot()
+
+simple_glm_probs %>% 
+  roc_auc(Class, .pred_One)
+```
+
+
+```{r}
+glm_workflow %>%
+  add_formula(Class ~ I(A/B)) %>% 
+  fit(data = bivariate_train) -> ratio_glm
+
+
+ratio_glm %>% 
+  predict(bivariate_val, type = "prob") %>%
+  bind_cols(bivariate_val) -> ratio_glm_probs
+
+ratio_glm_probs %>% 
+  roc_curve(Class, .pred_One) -> ratio_glm_roc
+
+autoplot(simple_glm_roc) + 
+  geom_path(
+    data = ratio_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity), 
+    col = "#FDE725FF"
+  )
+
+
+ratio_glm_probs %>% roc_auc(Class, .pred_One)
+```
+
+
+
+
+
+```{r}
+recipe(Class ~ ., data = bivariate_train) %>% 
+  step_BoxCox(all_predictors()) -> trans_recipe
+
+glm_workflow %>%
+  add_recipe(trans_recipe) %>% 
+  fit(data = bivariate_train) -> trans_glm
+
+trans_glm %>% 
+  predict(bivariate_val, type = "prob") %>%
+  bind_cols(bivariate_val) -> trans_glm_probs
+
+
+trans_glm_probs %>% 
+  roc_curve(Class, .pred_One) -> trans_glm_roc
+
+autoplot(simple_glm_roc) + 
+  geom_path(
+    data = ratio_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity), 
+    col = "#FDE725FF"
+  ) + 
+  geom_path(
+    data = trans_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity), 
+    col = "#21908CFF"
+  )
+
+trans_glm_probs %>% roc_auc(Class, .pred_One)
+```
+
+
+```{r}
+ggplot(bivariate_train, aes(x = 1/A, y = 1/B, col = Class)) + 
+  geom_point(alpha = .3) + 
+  coord_equal(ratio = 1/12)
+```
+
+
+```{r}
+trans_recipe %>% 
+  step_normalize(A, B) %>%
+  step_pca(A, B, num_comp = 2) -> pca_recipe
+
+
+glm_workflow %>%
+  add_recipe(pca_recipe) %>% 
+  fit(data = bivariate_train) -> pca_glm
+
+pca_glm %>% 
+  predict(bivariate_val, type = "prob") %>%
+  bind_cols(bivariate_val) -> pca_glm_probs
+
+pca_glm_probs %>% 
+  roc_curve(Class, .pred_One) -> pca_glm_roc
+
+autoplot(simple_glm_roc) + 
+  geom_path(
+    data = ratio_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity), 
+    col = "#FDE725FF"
+  ) + 
+  geom_path(
+    data = trans_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity), 
+    col = "#21908CFF"
+  ) +
+  geom_path(
+    data = pca_glm_roc, 
+    aes(x = 1 - specificity, y = sensitivity),
+    col = "#bc3754"
+  )
+  
+
+pca_glm_probs %>% roc_auc(Class, .pred_One)
+```
+
+
+
+
+
+
+
+```{r}
+trans_glm %>% 
+  predict(bivariate_test, type = "prob") %>%
+  bind_cols(bivariate_test) -> test_probs
+
+
+test_probs %>% 
+  roc_curve(Class, .pred_One) %>% 
+  autoplot()
+
+test_probs %>% 
+  roc_auc(Class, .pred_One)
+
+
+autoplot(test_roc) 
+```
+
+
+
+
+
+
+## workflowsets
+
+
+```{r}
+library(tidymodels)
+
+data(parabolic)
+str(parabolic)
+parabolic
+```
+
+
+```{r}
+set.seed(1)
+split <- initial_split(parabolic)
+
+train_set <- training(split)
+test_set <- testing(split)
+```
+
+
+
+
+```{r}
+ggplot(train_set, aes(x = X1, y = X2, col = class)) + 
+  geom_point(alpha = 0.5) + 
+  coord_fixed(ratio = 1) + 
+  scale_color_brewer(palette = "Dark2")
+```
+
+
+```{r}
+library(discrim)
+
+mars_disc_spec <- 
+  discrim_flexible(prod_degree = tune()) %>% 
+  set_engine("earth")
+
+reg_disc_sepc <- 
+  discrim_regularized(frac_common_cov = tune(),
+                      frac_identity = tune()) %>% 
+  set_engine("klaR")
+
+cart_spec <- 
+  decision_tree(cost_complexity = tune(),
+                min_n = tune()) %>% 
+  set_engine("rpart") %>% 
+  set_mode("classification")
+```
+
+
+
+```{r}
+set.seed(2)
+train_resamples <- bootstraps(train_set)
+train_resamples
+```
+
+
+
+```{r}
+all_workflows <- 
+  workflow_set(
+    preproc = list("formula" = class ~ .),
+    models = list(regularized = reg_disc_sepc, mars = mars_disc_spec, cart = cart_spec)
+  )
+all_workflows
+```
+
+```{r}
+all_workflows <- 
+   all_workflows %>% 
+   option_add(id = "formula_cart", 
+              control = control_grid(extract = function(x) x))
+all_workflows
+```
+
+```{r}
+all_workflows <- 
+  all_workflows %>% 
+  # Specifying arguments here adds to any previously set with `option_add()`:
+  workflow_map(resamples = train_resamples,
+               grid = 20,
+               verbose = TRUE)
+```
+
+
+
+```{r paged.print = FALSE}
+all_workflows
+```
+
+```{r}
+all_workflows$result[[1]]
+```
+
+```{r}
+rank_results(all_workflows, rank_metric = "roc_auc")
+
+autoplot(all_workflows, metric = "roc_auc")
+```
+
+
+```{r}
+autoplot(all_workflows, metric = "roc_auc", id = "formula_mars")
+```
+
+```{r}
+rank_results(all_workflows, rank_metric = "roc_auc") %>% 
+  filter(wflow_id == "formula_mars")
+```
+
+
+```{r}
+mars_results <- 
+  all_workflows %>% 
+  extract_workflow_set_result("formula_mars")
+mars_results
+```
+
+
+```{r}
+mars_results$.metrics[[1]]
+mars_results$.notes[[1]]
+```
+
+
+```{r}
+mars_workflow <- 
+  all_workflows %>% 
+  extract_workflow("formula_mars")
+mars_workflow
+```
+
+
+
+
+
+
+```{r}
+mars_workflow_fit <- 
+  mars_workflow %>% 
+  finalize_workflow(tibble(prod_degree = 1)) %>% 
+  fit(data = train_set)
+mars_workflow_fit
+```
+
+```{r}
+# Make a grid to predict the whole space:
+grid <-
+  crossing(X1 = seq(min(train_set$X1), max(train_set$X1), length.out = 250),
+           X2 = seq(min(train_set$X1), max(train_set$X2), length.out = 250))
+
+grid <- 
+  grid %>% 
+  bind_cols(predict(mars_workflow_fit, grid, type = "prob"))
+```
+
+
+```{r}
+ggplot(grid, aes(x = X1, y = X2)) + 
+  geom_contour(aes(z = .pred_Class2), breaks = 0.5, col = "black") + 
+  geom_point(data = test_set, aes(col = class), alpha = 0.5) + 
+  coord_fixed(ratio = 1) + 
+  scale_color_brewer(palette = "Dark2")
+```
+
+
+
+
+```{r paged.print = FALSE}
+cart_res <- 
+   all_workflows %>% 
+   extract_workflow_set_result("formula_cart")
+cart_res
+```
+
+```{r}
+cart_res$.metrics[[1]]
+cart_res$.extracts[[1]]
+```
+
+
+```{r}
+# Get the best results
+best_cart <- select_best(cart_res, metric = "roc_auc")
+
+cart_wflows <- 
+   cart_res %>% 
+   dplyr::select(id, .extracts) %>% 
+   unnest(cols = .extracts) %>% 
+   inner_join(best_cart)
+#> Joining, by = c("cost_complexity", "min_n", ".config")
+
+cart_wflows
+```
+
+```{r}
+num_nodes <- function(wflow) {
+   var_imps <- 
+      wflow %>% 
+      # Pull out the rpart model
+      extract_fit_engine() %>% 
+      # The 'frame' element is a matrix with a column that
+      # indicates which leaves are terminal
+      pluck("frame") %>% 
+      # Convert to a data frame
+      as_tibble() %>% 
+      # Save only the rows that are terminal nodes
+      filter(var == "<leaf>") %>% 
+      # Count them
+      nrow() 
+}
+
+cart_wflows$.extracts[[1]] %>% num_nodes()
+```
+
+
+```{r}
+cart_wflows <- 
+   cart_wflows %>% 
+   mutate(num_nodes = map_int(.extracts, num_nodes))
+cart_wflows
+```
+
+
+
+
+
+
+```{r}
+data(Chicago)
+# Use a small sample to keep file sizes down:
+Chicago <- Chicago %>% slice(1:365)
+
+
+recipe(ridership ~ ., data = Chicago) %>% 
+  # create date features
+   step_date(date) %>%
+   step_holiday(date) %>% 
+   # remove date from the list of predictors
+   update_role(date, new_role = "id") %>% 
+   # create dummy variables from factor columns
+   step_dummy(all_nominal()) %>% 
+   # remove any columns with a single unique value
+   step_zv(all_predictors()) %>% 
+   step_normalize(all_predictors()) -> base_recipe
+
+
+base_recipe %>% 
+   step_corr(all_of(stations), threshold = tune()) -> filter_rec
+
+
+base_recipe %>% 
+   step_pca(all_of(stations), num_comp = tune()) %>% 
+   step_normalize(all_predictors()) -> pca_rec
+```
+
+
+```{r}
+base_recipe %>% 
+  prep(Chicago) -> base_recipe_prep
+
+base_recipe_prep %>% 
+  bake(new_data = Chicago)
+```
+
+```{r}
+linear_reg(penalty = tune(), mixture = tune()) %>% 
+  set_engine("glmnet") -> regularized_spec
+
+decision_tree(cost_complexity = tune(), min_n = tune()) %>% 
+  set_engine("rpart") %>% 
+  set_mode("regression") -> cart_spec
+
+nearest_neighbor(neighbors = tune(), weight_func = tune()) %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression") -> knn_spec
+```
+
+```{r paged.print = FALSE}
+workflow_set(
+  preproc = list(simple = base_recipe, 
+                 filter = filter_rec,
+                 pca = pca_rec),
+  models = list(glmnet = regularized_spec,
+                cart = cart_spec, 
+                knn = knn_spec),
+  cross = TRUE) -> chi_models
+
+chi_models
+chi_models$info[[1]]
+```
+
+```{r}
+chi_models %>% 
+   anti_join(tibble(wflow_id = c("pca_glmnet", "filter_glmnet")), by = "wflow_id") -> chi_models
+
+chi_models
+```
+
+```{r paged.print = FALSE}
+sliding_period(
+      Chicago,
+      date,
+      "day",
+      lookback = 300,   # Each resample has 300 days for modeling
+      assess_stop = 7,  # One week for performance assessment
+      step = 7          # Ensure non-overlapping weeks for assessment
+   ) -> splits
+splits
+```
+
+```{r paged.print = FALSE}
+set.seed(123)
+chi_models %>% 
+  workflow_map("tune_grid", # a function name from the {{tune}} package such as `tune_grid()`, `fit_resamples()`, etc.
+               resamples = splits,
+               grid = 10, 
+               metrics = metric_set(mae),
+               verbose = TRUE) -> chi_models
+chi_models
+chi_models$info[[1]]
+chi_models$option[[1]]
+chi_models$result[[1]]
+```
+
+```{r}
+autoplot(chi_models)
+```
+
+```{r}
+autoplot(chi_models, select_best = TRUE)
+```
+
+```{r}
+chi_models %>% 
+  rank_results(rank_metric = "mae", select_best = TRUE) %>% 
+  select(rank, mean, model, wflow_id, .config)
+```
+
+
+## tune
+
+```{r}
+library(tidymodels)
+
+data(ames)
+
+set.seed(4595)
+data_split <- ames %>%
+  mutate(Sale_Price = log10(Sale_Price)) %>%
+  initial_split(strata = Sale_Price)
+ames_train <- training(data_split)
+ames_test  <- testing(data_split)
+```
+
+
+```{r}
+ames_train %>% 
+  dplyr::select(Sale_Price, Longitude, Latitude) %>% 
+  tidyr::pivot_longer(cols = c(Longitude, Latitude), 
+                      names_to = "predictor", values_to = "value") %>% 
+  ggplot(aes(x = value, Sale_Price)) + 
+  geom_point(alpha = .2) + 
+  geom_smooth(se = FALSE) + 
+  facet_wrap(~ predictor, scales = "free_x")
+```
+
+
+```{r}
+ames_rec <- 
+  recipe(Sale_Price ~ Gr_Liv_Area + Longitude + Latitude, data = ames_train) %>% 
+  step_log(Gr_Liv_Area, base = 10) %>% 
+  step_ns(Longitude, Latitude, deg_free = tune())
+
+parameters(ames_rec)
+```
+
+```{r}
+ames_rec <- 
+  recipe(Sale_Price ~ Gr_Liv_Area + Longitude + Latitude, data = ames_train) %>% 
+  step_log(Gr_Liv_Area, base = 10) %>% 
+  step_ns(Longitude, deg_free = tune()) %>% 
+  step_ns(Latitude,  deg_free = tune())
+
+parameters(ames_rec)
+```
+
+
+```{r}
+ames_rec <- 
+  recipe(Sale_Price ~ Gr_Liv_Area + Longitude + Latitude, data = ames_train) %>% 
+  step_log(Gr_Liv_Area, base = 10) %>% 
+  step_ns(Longitude, deg_free = tune("long df")) %>% 
+  step_ns(Latitude,  deg_free = tune("lat df"))
+
+parameters(ames_rec)
+```
+
+```{r}
+deg_free()
+```
+
+
+```{r}
+spline_degree()
+```
+
+```{r}
+ames_param <- 
+  ames_rec %>% 
+  parameters() %>% 
+  update(
+    `long df` = spline_degree(), 
+    `lat df` = spline_degree()
+  )
+
+ames_param
+```
+
+```{r}
+spline_grid <- grid_max_entropy(ames_param, size = 10)
+spline_grid
+```
+
+
+```{r}
+df_vals <- seq(2, 18, by = 2)
+df_vals
+spline_grid <- expand.grid(`long df` = df_vals, `lat df` = df_vals)
+spline_grid
+```
+
+
+```{r}
+lm_mod <- linear_reg() %>% set_engine("lm")
+lm_mod
+```
+
+```{r}
+set.seed(2453)
+cv_splits <- vfold_cv(ames_train, v = 10, strata = Sale_Price)
+cv_splits
+```
+
+```{r paged.print = FALSE}
+ames_res <- tune_grid(lm_mod, 
+                      ames_rec, 
+                      resamples = cv_splits, 
+                      grid = spline_grid)
+ames_res
+```
+
+
+
+```{r}
+ames_res$.metrics[[1]]
+```
+
+```{r}
+estimates <- collect_metrics(ames_res)
+estimates
+```
+
+```{r}
+rmse_vals <- 
+  estimates %>% 
+  dplyr::filter(.metric == "rmse") %>% 
+  arrange(mean)
+rmse_vals
+```
+
+```{r}
+autoplot(ames_res, metric = "rmse")
+```
+
+
+```{r}
+ames_train %>% 
+  dplyr::select(Sale_Price, Longitude, Latitude) %>% 
+  tidyr::pivot_longer(cols = c(Longitude, Latitude), 
+                      names_to = "predictor", values_to = "value") %>% 
+  ggplot(aes(x = value, Sale_Price)) + 
+  geom_point(alpha = .2) + 
+  geom_smooth(se = FALSE, method = lm, formula = y ~ splines::ns(x, df = 3),  col = "red")  + 
+  geom_smooth(se = FALSE, method = lm, formula = y ~ splines::ns(x, df = 16)) +
+  scale_y_log10() +
+  facet_wrap(~ predictor, scales = "free_x")
+```
+
+
+```{r}
+# requires the kknn package
+knn_mod <- 
+  nearest_neighbor(neighbors = tune(), weight_func = tune()) %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression")
+```
+
+
+```{r}
+library(workflows)
+knn_wflow <- 
+  workflow() %>% 
+  add_model(knn_mod) %>% 
+  add_recipe(ames_rec)
+```
+
+```{r}
+knn_param <- 
+  knn_wflow %>% 
+  parameters() %>% 
+    update(
+    `long df` = spline_degree(c(2, 18)), 
+    `lat df` = spline_degree(c(2, 18)),
+    neighbors = neighbors(c(3, 50)),
+    weight_func = weight_func(values = c("rectangular", "inv", "gaussian", "triangular"))
+  )
+knn_param
+```
+
+```{r}
+ctrl <- control_bayes(verbose = TRUE)
+set.seed(8154)
+knn_search <- tune_bayes(knn_wflow,
+                         resamples = cv_splits,
+                         initial = 5,
+                         iter = 20,
+                         param_info = knn_param,
+                         control = ctrl)
+```
+
+```{r paged.print = FALSE}
+knn_search
+```
+
+
+```{r}
+autoplot(knn_search, type = "performance", metric = "rmse")
+```
+
+
+```{r}
+collect_metrics(knn_search) %>% 
+  dplyr::filter(.metric == "rmse") %>% 
+  arrange(mean)
+```
+
+
+## dias
+
+
+
+```{r}
+df <- data.frame(x = runif(3), y = runif(3))
+df
+df$x
+```
+
+
+
+
+```{r}
+var_summary <- function(data, var) {
+  data %>%
+    summarise(n = n(), min = min({{ var }}), max = max({{ var }}))
+}
+
+mtcars %>% 
+  group_by(cyl) %>% 
+  var_summary(mpg)
+```
+
+
+```{r}
+summarise_mean <- function(data, vars) {
+  data %>% summarise(n = n(), across({{ vars }}, mean))
+}
+
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise_mean(where(is.numeric))
+```
+
+
+# Class imbalances
+
+```{r}
+imbal_data <- 
+  readr::read_csv("https://bit.ly/imbal_data") %>% 
+  mutate(Class = factor(Class))
+imbal_data
+
+table(imbal_data$Class)
+```
+
+
+```{r}
+library(tidymodels)
+library(themis)
+
+imbal_rec <- 
+  recipe(Class ~ ., data = imbal_data) %>%
+  step_rose(Class, seed = 1234)
+imbal_rec
+```
+
+```{r}
+library(discrim)
+qda_mod <- 
+  discrim_regularized(frac_common_cov = 0,
+                      frac_identity = 0) %>% 
+  set_engine("klaR")
+qda_mod
+```
+
+
+```{r}
+qda_rose_wflw <- 
+  workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_recipe(imbal_rec)
+qda_rose_wflw
+```
+
+
+```{r}
+set.seed(5732)
+cv_folds <- vfold_cv(imbal_data, strata = "Class", repeats = 5)
+cv_folds
+```
+
+```{r}
+cls_metrics <- metric_set(roc_auc, j_index)
+cls_metrics
+```
+
+
+```{r}
+set.seed(2180)
+qda_rose_res <- fit_resamples(
+  qda_rose_wflw, 
+  resamples = cv_folds, 
+  metrics = cls_metrics
+)
+
+collect_metrics(qda_rose_res)
+```
+
+
+```{r}
+qda_wflw <- 
+  workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_formula(Class ~ .)
+
+set.seed(2180)
+qda_only_res <- fit_resamples(qda_wflw,
+                              resamples = cv_folds,
+                              metrics = cls_metrics)
+collect_metrics(qda_only_res)
+```
+
+
+
+```{r}
+no_sampling <- 
+  qda_only_res %>% 
+  collect_metrics(summarize = FALSE) %>% 
+  dplyr::select(-.estimator) %>% 
+  mutate(sampling = "no_sampling")
+
+with_sampling <- 
+  qda_rose_res %>% 
+  collect_metrics(summarize = FALSE) %>% 
+  dplyr::select(-.estimator) %>% 
+  mutate(sampling = "rose")
+
+bind_rows(no_sampling, with_sampling) %>% 
+  mutate(label = paste(id2, id)) %>%  
+  ggplot(aes(x = sampling, y = .estimate, group = label)) + 
+  geom_line(alpha = .4) + 
+  facet_wrap(~ .metric, scales = "free_y")
+```
+
+## h2o
+
+
+```{r}
+library(h2o)
+h2o.init()
+
+covtype <- h2o.importFile("https://s3.amazonaws.com/h2o-public-test-data/smalldata/covtype/covtype.20k.data")
+
+# convert response column to a factor
+covtype[, 55] <- as.factor(covtype[, 55])
+
+# set the predictor names and the response column name
+predictors <- colnames(covtype[1:54])
+response <- 'C55'
+
+
+
+# split into train and validation sets
+covtype_splits <- h2o.splitFrame(data =  covtype, ratios = 0.8, seed = 1234)
+train <- covtype_splits[[1]]
+valid <- covtype_splits[[2]]
+
+
+cov_gbm <- h2o.gbm(x = predictors,
+                   y = response,
+                   training_frame = train,
+                   validation_frame = valid,
+                   balance_classes = TRUE,
+                   seed = 1234)
+print(h2o.logloss(cov_gbm, valid = TRUE))
+```
+
+
+
+```{r}
+# grid over `balance_classes` (boolean parameter)
+# select the values for `balance_classes` to grid over
+hyper_params <- list(balance_classes = c(TRUE, FALSE))
+
+# this example uses cartesian grid search because the search space is small and we want to see the performance of all models. For a larger search space use random grid search instead: {'strategy': "RandomDiscrete"}
+
+# build grid search with previously made GBM and hyperparameters
+grid <- h2o.grid(x = predictors,
+                 y = response,
+                 training_frame = train,
+                 validation_frame = valid,
+                 algorithm = "gbm",
+                 grid_id = "covtype_grid",
+                 hyper_params = hyper_params,
+                 search_criteria = list(strategy = "Cartesian"),
+                 seed = 1234)
+
+# Sort the grid models by logloss
+sorted_grid <- h2o.getGrid("covtype_grid", sort_by = "logloss", decreasing = FALSE)
+sorted_grid
+```
+
+
+## caret
+
+
+
+
+```{r}
+library(caret)
+
+set.seed(2969)
+imbal_train <- twoClassSim(10000, intercept = -20, linearVars = 20)
+imbal_test  <- twoClassSim(10000, intercept = -20, linearVars = 20)
+table(imbal_train$Class)
+```
+
+
+```{r}
+set.seed(9560)
+down_train <- downSample(x = imbal_train[, -ncol(imbal_train)],
+                         y = imbal_train$Class)
+table(down_train$Class)
+```
+
+
+```{r}
+set.seed(9560)
+up_train <- upSample(x = imbal_train[, -ncol(imbal_train)],
+                     y = imbal_train$Class)                         
+table(up_train$Class)
+```
+
+
+```{r}
+library(DMwR)
+
+set.seed(9560)
+smote_train <- SMOTE(Class ~ ., data  = imbal_train)                         
+table(smote_train$Class) 
+```
+
+```{r}
+library(ROSE)
+
+set.seed(9560)
+rose_train <- ROSE(Class ~ ., data  = imbal_train)$data                         
+table(rose_train$Class)
+```
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", repeats = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary)
+
+set.seed(5627)
+orig_fit <- train(Class ~ ., data = imbal_train, 
+                  method = "treebag",
+                  nbagg = 50,
+                  metric = "ROC",
+                  trControl = ctrl)
+
+set.seed(5627)
+down_outside <- train(Class ~ ., data = down_train, 
+                      method = "treebag",
+                      nbagg = 50,
+                      metric = "ROC",
+                      trControl = ctrl)
+
+set.seed(5627)
+up_outside <- train(Class ~ ., data = up_train, 
+                    method = "treebag",
+                    nbagg = 50,
+                    metric = "ROC",
+                    trControl = ctrl)
+
+set.seed(5627)
+rose_outside <- train(Class ~ ., data = rose_train, 
+                      method = "treebag",
+                      nbagg = 50,
+                      metric = "ROC",
+                      trControl = ctrl)
+
+set.seed(5627)
+smote_outside <- train(Class ~ ., data = smote_train, 
+                       method = "treebag",
+                       nbagg = 50,
+                       metric = "ROC",
+                       trControl = ctrl)
+```
+
+
+```{r}
+outside_models <- list(original = orig_fit,
+                       down = down_outside,
+                       up = up_outside,
+                       SMOTE = smote_outside,
+                       ROSE = rose_outside)
+
+outside_resampling <- resamples(outside_models)
+
+test_roc <- function(model, data) {
+  library(pROC)
+  roc_obj <- roc(data$Class, 
+                 predict(model, data, type = "prob")[, "Class1"],
+                 levels = c("Class2", "Class1"))
+  ci(roc_obj)
+  }
+
+outside_test <- lapply(outside_models, test_roc, data = imbal_test)
+outside_test <- lapply(outside_test, as.vector)
+outside_test <- do.call("rbind", outside_test)
+colnames(outside_test) <- c("lower", "ROC", "upper")
+outside_test <- as.data.frame(outside_test)
+
+summary(outside_resampling, metric = "ROC")
+```
+
+```{r}
+outside_test
+```
+
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", repeats = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary,
+                     ## new option here:
+                     sampling = "down")
+
+set.seed(5627)
+down_inside <- train(Class ~ ., data = imbal_train,
+                     method = "treebag",
+                     nbagg = 50,
+                     metric = "ROC",
+                     trControl = ctrl)
+
+## now just change that option
+ctrl$sampling <- "up"
+set.seed(5627)
+up_inside <- train(Class ~ ., data = imbal_train,
+                   method = "treebag",
+                   nbagg = 50,
+                   metric = "ROC",
+                   trControl = ctrl)
+
+ctrl$sampling <- "rose"
+set.seed(5627)
+rose_inside <- train(Class ~ ., data = imbal_train,
+                     method = "treebag",
+                     nbagg = 50,
+                     metric = "ROC",
+                     trControl = ctrl)
+
+ctrl$sampling <- "smote"
+set.seed(5627)
+smote_inside <- train(Class ~ ., data = imbal_train,
+                      method = "treebag",
+                      nbagg = 50,
+                      metric = "ROC",
+                      trControl = ctrl)
+```
+
+
+
+
+
+# Classification
+
+
+
+
+```{r}
+data(bivariate)
+nrow(bivariate_train)
+nrow(bivariate_val)
+
+ggplot(bivariate_train, aes(x = A, y = B, col = Class)) + 
+  geom_point(alpha = .2)
+```
+
+
+```{r}
+recipe(Class ~ ., data = bivariate_train) %>%
+  step_BoxCox(all_predictors())%>%
+  step_normalize(all_predictors()) %>%
+  prep(training = bivariate_train, retain = TRUE) -> biv_rec
+
+# We will bake(new_data = NULL) to get the processed training set back
+
+# For validation:
+val_normalized <- bake(biv_rec, new_data = bivariate_val, all_predictors())
+# For testing when we arrive at a final model: 
+test_normalized <- bake(biv_rec, new_data = bivariate_test, all_predictors())
+```
+
+
+```{r}
+set.seed(57974)
+nnet_fit <-
+  mlp(epochs = 100,
+      hidden_units = 5,
+      dropout = 0.1) %>%
+  set_mode("classification") %>% 
+  # Also set engine-specific `verbose` argument to prevent logging the results: 
+  set_engine("keras", verbose = 0) %>%
+  fit(Class ~ ., data = bake(biv_rec, new_data = NULL))
+```
+
+
+```{r}
+nnet_fit
+```
+
+```{r}
+predict(nnet_fit, new_data = val_normalized)
+predict(nnet_fit, new_data = val_normalized, type = "prob")
+```
+
+
+```{r}
+val_results <- 
+  bivariate_val %>%
+  bind_cols(
+    predict(nnet_fit, new_data = val_normalized),
+    predict(nnet_fit, new_data = val_normalized, type = "prob")
+  )
+val_results
+```
+
+
+```{r}
+val_results %>% roc_auc(truth = Class, .pred_One)
+val_results %>% accuracy(truth = Class, .pred_class)
+val_results %>% conf_mat(truth = Class, .pred_class)
+```
+
+
+
+
+```{r}
+a_rng <- range(bivariate_train$A)
+b_rng <- range(bivariate_train$B)
+x_grid <-
+  expand.grid(A = seq(a_rng[1], a_rng[2], length.out = 100),
+              B = seq(b_rng[1], b_rng[2], length.out = 100))
+
+x_grid
+x_grid_trans <- bake(biv_rec, x_grid)
+x_grid_trans
+```
+
+
+
+```{r}
+# Make predictions using the transformed predictors but attach them to the predictors in the original units: 
+x_grid <- 
+  x_grid %>% 
+  bind_cols(predict(nnet_fit, x_grid_trans, type = "prob"))
+x_grid
+```
+
+
+```{r}
+ggplot(x_grid, aes(x = A, y = B)) + 
+  geom_contour(aes(z = .pred_One), breaks = .5, col = "black") + 
+  geom_point(data = bivariate_val, aes(col = Class), alpha = 0.3)
+```
+
+
+
+
+# Multi-class classification
+
+```{r}
+library(h2o)
+h2o.init()
+h2o.removeAll()
+```
+
+```{r}
+D = h2o.importFile(path = normalizePath("../data/covtype.full.csv"))
+h2o.summary(D)
+```
+
+
+
+# Admissible ML
+
+```{r}
+library(h2o)
+
+h2o.init()
+
+# Import credit dataset
+f <- "https://erin-data.s3.amazonaws.com/admissible/data/taiwan_credit_card_uci.csv"
+col_types <- list(by.col.name = c("SEX", "MARRIAGE", "default_payment_next_month"),
+                  types = c("factor", "factor", "factor"))
+df <- h2o.importFile(path = f, col.types = col_types)
+df
+```
+
+```{r}
+# We will split the data so that we can test/compare performance
+# of admissible vs non-admissible models later
+splits <- h2o.splitFrame(df, seed = 1)
+train <- splits[[1]]
+test <- splits[[2]]
+
+# Response column and predictor columns
+y <- "default_payment_next_month"
+x <- setdiff(names(train), y)
+
+# Protected columns
+pcols <- c("SEX", "MARRIAGE", "AGE")
+
+# Infogram
+ig <- h2o.infogram(y = y,
+                   x = x,
+                   training_frame = train,
+                   protected_columns = pcols)
+plot(ig)
+```
+
+
+
+```{r}
+library(h2o)
+
+h2o.init()
+
+# Import HMDA dataset
+f <- "https://erin-data.s3.amazonaws.com/admissible/data/hmda_lar_2018_sample.csv"
+col_types <- list(by.col.name = c("high_priced"),
+                  types = c("factor"))
+df <- h2o.importFile(path = f, col.types = col_types)
+df
+```
+
+```{r}
+# We will split the data so that we can test/compare performance
+# of admissible vs non-admissible models later
+splits <- h2o.splitFrame(df, ratios = 0.8, seed = 1)
+train <- splits[[1]]
+test <- splits[[2]]
+
+# Response column and predictor columns
+y <- "high_priced"
+x <- c("loan_amount",
+       "loan_to_value_ratio",
+       "loan_term",
+       "intro_rate_period",
+       "property_value",
+       "income",
+       "debt_to_income_ratio")
+
+# Protected columns
+pcols <- c("derived_ethnicity",
+           "derived_race",
+           "derived_sex",
+           "applicant_age",
+           "applicant_age_above_62")
+
+# Infogram
+ig <- h2o.infogram(y = y, x = x, training_frame = train, protected_columns = pcols)
+plot(ig)
+
+```
+
+```{r}
+# Admissible score frame
+asf <- ig@admissible_score
+asf
+```
+
+```{r}
+# Admissible columns
+acols <- ig@admissible_features
+
+# Unprotected columns
+ucols <- setdiff(x, pcols)
+
+# Train an Admissible GBM
+agbm <- h2o.gbm(x = acols,
+                y = y,
+                training_frame = train,
+                seed = 1)
+
+# Train a GBM on all unprotected features
+gbm <- h2o.gbm(x = ucols, y = y,
+               training_frame = train,
+               seed = 1)
+
+# Admissible GBM test AUC
+h2o.auc(h2o.performance(agbm, test))
+
+# Inadmissible GBM test AUC
+h2o.auc(h2o.performance(gbm, test))
+```
+
+
+
+```{r}
+library(h2o)
+h2o.init()
+
+data(iris)  #Not required?
+iris <- iris[1:120,] #Remove 60% of virginica
+summary(iris$Species) #50/50/20
+```
+
+
+```{r}
+d <- as.h2o(iris)
+splits = h2o.splitFrame(d,0.8,c("train","test"), seed=77)
+train = splits[[1]]
+test = splits[[2]]
+summary(train$Species)  #41/41/14
+summary(test$Species)  #9/9/6
+```
+
+```{r}
+m1 = h2o.randomForest(1:4,
+                      5,
+                      train,
+                      model_id ="RF_defaults",
+                      seed=1)
+h2o.confusionMatrix(m1)
+```
+
+
+```{r}
+m2 = h2o.randomForest(1:4,
+                      5,
+                      train,
+                      model_id ="RF_balanced",
+                      seed=1,
+                      balance_classes = TRUE)
+h2o.confusionMatrix(m2)
+```
+
+```{r}
+m3 = h2o.randomForest(1:4,
+                      5,
+                      train,
+                      model_id ="RF_balanced",
+                      seed=1,
+                      balance_classes = TRUE,
+                      class_sampling_factors = c(1, 1, 2.5))
+h2o.confusionMatrix(m3)
+```
+
+
+
+# themis
+
+
+
+
+```{r}
+library(modeldata)
+library(recipes)
+library(themis)
+```
+
+
+
+```{r}
+step_unknown()
+step_meanimpute()
+step_smote()
+```
+
+
+```{r}
+data("okc")
+okc
+table(okc$Class)
+```
+
+
+
+
+
+
+
+
+
+```{r}
+library(recipes)
+library(modeldata)
+library(themis)
+
+data("credit_data")
+
+credit_data0 <- credit_data %>%
+  filter(!is.na(Job))
+
+count(credit_data0, Job)
+```
+
+```{r}
+ds_rec <- recipe(Job ~ Time + Age + Expenses,
+                 data = credit_data0) %>%
+  step_impute_mean(all_predictors()) %>%
+  step_smote(Job, over_ratio = 0.25) %>%
+  prep()
+
+ds_rec %>%
+  bake(new_data = NULL) %>%
+  count(Job)
+```
+
+```{r}
+example_data <- data.frame(class = letters[rep(1:5, 1:5 * 10)],
+                           x = rnorm(150))
+
+library(ggplot2)
+
+example_data %>%
+  ggplot(aes(class)) +
+  geom_bar()
+```
+
+```{r}
+recipe(~., example_data) %>%
+  step_upsample(class, over_ratio = 1) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(class)) +
+  geom_bar()
+```
+
+```{r}
+recipe(~., example_data) %>%
+  step_upsample(class, over_ratio = 0.5) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(class)) +
+  geom_bar()
+```
+
+```{r}
+recipe(~., example_data) %>%
+  step_downsample(class, under_ratio = 2) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(class)) +
+  geom_bar()
+```
+
+```{r}
+recipe(~., example_data) %>%
+  step_downsample(class, under_ratio = 1) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(class)) +
+  geom_bar()
+```
+
+
+## ROSE
+
+```{r}
+library(recipes)
+library(modeldata)
+data(hpc_data)
+
+hpc_data0 <- hpc_data %>%
+  mutate(class = factor(class == "VF", labels = c("not VF", "VF"))) %>%
+  select(-protocol, -day)
+
+orig <- count(hpc_data0, class, name = "orig")
+orig
+```
+
+```{r}
+up_rec <- recipe(class ~ ., data = hpc_data0) %>%
+  step_rose(class) %>%
+  prep()
+
+training <- up_rec %>%
+  bake(new_data = NULL) %>%
+  count(class, name = "training")
+training
+```
+
+```{r}
+# Since `skip` defaults to TRUE, baking the step has no effect
+baked <- up_rec %>%
+  bake(new_data = hpc_data0) %>%
+  count(class, name = "baked")
+baked
+```
+
+```{r}
+orig %>%
+  left_join(training, by = "class") %>%
+  left_join(baked, by = "class")
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(circle_example, aes(x, y, color = class)) +
+  geom_point() +
+  labs(title = "Without ROSE")
+
+recipe(class ~ x + y, data = circle_example) %>%
+  step_rose(class) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(x, y, color = class)) +
+  geom_point() +
+  labs(title = "With ROSE")
+```
+
+
+## Upsample
+
+
+```{r}
+library(recipes)
+library(modeldata)
+data(hpc_data)
+
+hpc_data0 <- hpc_data %>%
+  select(-protocol, -day)
+
+orig <- count(hpc_data0, class, name = "orig")
+orig
+```
+
+```{r}
+up_rec <- recipe(class ~ ., data = hpc_data0) %>%
+  # Bring the minority levels up to about 1000 each
+  # 1000/2211 is approx 0.4523
+  step_upsample(class, over_ratio = 0.4523) %>%
+  prep()
+
+training <- up_rec %>%
+  bake(new_data = NULL) %>%
+  count(class, name = "training")
+training
+```
+
+```{r}
+# Since `skip` defaults to TRUE, baking the step has no effect
+baked <- up_rec %>%
+  bake(new_data = hpc_data0) %>%
+  count(class, name = "baked")
+baked
+```
+
+
+```{r}
+# Note that if the original data contained more rows than the
+# target n (= ratio * majority_n), the data are left alone:
+orig %>%
+  left_join(training, by = "class") %>%
+  left_join(baked, by = "class")
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(circle_example, aes(x, y, color = class)) +
+  geom_point() +
+  labs(title = "Without upsample")
+
+
+recipe(class ~ x + y, data = circle_example) %>%
+  step_upsample(class) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  ggplot(aes(x, y, color = class)) +
+  geom_jitter(width = 0.1, height = 0.1) +
+  labs(title = "With upsample (with jittering)")
+```
+
+
+
+# DALEXtra
+
+
+```{r}
+library(h2o)
+library(DALEXtra)
+h2o.init()
+```
+
+
+
+```{r}
+titanic_train <- read.csv(system.file("extdata", "titanic_train.csv", package = "DALEXtra"))
+titanic_test <- read.csv(system.file("extdata", "titanic_test.csv", package = "DALEXtra"))
+
+titanic_h2o <- h2o::as.h2o(titanic_train)
+titanic_test_h2o <- h2o::as.h2o(titanic_test)
+titanic_h2o["survived"] <- h2o::as.factor(titanic_h2o["survived"])
+```
+
+
+
+```{r}
+model <- h2o::h2o.gbm(
+  training_frame = titanic_h2o,
+  y = "survived",
+  distribution = "bernoulli",
+  ntrees = 500,
+  max_depth = 4,
+  min_rows =  12,
+  learn_rate = 0.001)
+```
+
+
+```{r}
+explain_h2o(model, titanic_test[,1:17], titanic_test[,18])
+```
+
+
+
+```{r}
+library("mlr")
+library("DALEXtra")
+
+task <- mlr::makeRegrTask(
+   id = "R",
+   data = apartments,
+   target = "m2.price"
+ )
+
+
+```
+
+
+```{r}
+learner_lm <- mlr::makeLearner(
+   "regr.lm"
+ )
+
+model_lm <- mlr::train(learner_lm, task)
+
+
+explainer_lm <- explain_mlr(model_lm,
+                            apartmentsTest,
+                            apartmentsTest$m2.price,
+                            label = "LM", 
+                            verbose = FALSE,
+                            precalculate = FALSE)
+```
+
+
+```{r}
+learner_rf <- mlr::makeLearner(
+   "regr.randomForest"
+ )
+
+model_rf <- mlr::train(learner_rf, task)
+
+explainer_rf <- explain_mlr(model_rf,
+                            apartmentsTest,
+                            apartmentsTest$m2.price,
+                            label = "RF",
+                            verbose = FALSE,
+                            precalculate = FALSE)
+```
+
+
+
+```{r}
+plot_data <- funnel_measure(explainer_lm, explainer_rf, 
+                            partition_data = cbind(apartmentsTest, 
+                                                   "m2.per.room" = apartmentsTest$surface/apartmentsTest$no.rooms),
+                            nbins = 5,
+                            measure_function = DALEX::loss_root_mean_square,
+                            show_info = FALSE)
+```
+
+
+```{r}
+plot(plot_data)[[1]]
+```
+
+
+
+# DALEX and H2O
+
+```{r}
+data_final = read_rds("../data/data_final.rds")
+
+data_final %>% 
+  select(subscribed) %>% 
+  plot_bar()
+```
+
+```{r}
+set.seed(seed = 1975) 
+
+train_test_split <- rsample::initial_split(data = data_final,
+                                           prop = 0.80) 
+
+train_test_split
+
+train_tbl <- train_test_split %>% rsample::training() 
+test_tbl  <- train_test_split %>% rsample::testing() 
+```
+
+## Building models with h2o
+
+
+```{r}
+h2o.init()
+h2o.shutdown()
+
+memuse::Sys.meminfo()
+```
+
+
+
+
+```{r}
+# response variable
+y <- "subscribed"
+
+# predictors set: remove response variable
+x <- setdiff(names(train_tbl %>% as.h2o()), y)
+```
+
+
+```{r}
+# DRF hyperparameters
+hyper_params_drf <- list(mtries = seq(2, 5, by = 1), # the columns to randomly select on each node of the tree 
+                         sample_rate = c(0.65, 0.8, 0.95), # the row sampling rate for each tree
+                         col_sample_rate_per_tree = c(0.5, 0.9, 1.0), # the column sampling for each tree
+                         max_depth = seq(1, 30, by = 3), # the maximum tree depth
+                         min_rows = c(1, 2, 5, 10) #  the minimum number of observations per leaf
+                         )
+
+# GBM hyperparameters
+hyper_params_gbm <- list(learn_rate = c(0.01, 0.1), # the rate at which the model learns when building a model
+                         sample_rate = c(0.65, 0.8, 0.95), # the row sampling rate for each tree
+                         col_sample_rate_per_tree = c(0.5, 0.9, 1.0), # the column sampling for each tree
+                         max_depth = seq(1, 30, by = 3), # the maximum tree depth
+                         min_rows = c(1, 2, 5, 10) #  the minimum number of observations per leaf
+                         )
+
+search_criteria_all <- list(strategy = "RandomDiscrete",
+                            stopping_metric = "AUC",    
+                            stopping_rounds = 10,
+                            stopping_tolerance = 0.0001,
+                            max_runtime_secs = 60 * 60)
+```
+
+
+```{r}
+# elastic net model 
+glm_model <- h2o.glm(x = x,
+                     y = y, 
+                     training_frame  = train_tbl %>% as.h2o(),
+                     balance_classes = TRUE,
+                     nfolds = 10,
+                     family = "binomial",
+                     seed = 1975)
+
+# random forest model
+drf_model_grid <- h2o.grid(algorithm = "randomForest", 
+                           x = x, 
+                           y = y,
+                           training_frame  = train_tbl %>% as.h2o(),
+                           balance_classes = TRUE, 
+                           nfolds = 10,
+                           ntrees = 1000,
+                           grid_id = "drf_grid",
+                           hyper_params = hyper_params_drf,
+                           search_criteria = search_criteria_all,
+                           seed = 1975)
+
+# gradient boosting machine model
+gbm_model_grid <- h2o.grid(algorithm = "gbm",
+                           x = x, 
+                           y = y,
+                           training_frame  = train_tbl %>% as.h2o(),
+                           balance_classes = TRUE, 
+                           nfolds = 10,
+                           ntrees = 1000,
+                           grid_id = "gbm_grid",
+                           hyper_params = hyper_params_gbm,
+                           search_criteria = search_criteria_all,
+                           seed = 1975)
+```
+
+
+
+```{r}
+# load required packages
+library(rsample)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(h2o)
+library(DALEX)
+
+# initialize h2o session
+h2o.no_progress()
+h2o.init()
+```
+
+
+```{r}
+library(rsample)
+
+# classification data
+df <- attrition %>%
+  mutate_if(is.ordered, factor, ordered = FALSE) %>%
+  mutate(Attrition = recode(Attrition, "Yes" = "1", "No" = "0") %>% factor(levels = c("1", "0")))
+
+df %>% 
+  select(Attrition) %>% 
+  plot_bar()
+
+# convert to h2o object
+df.h2o <- as.h2o(df)
+
+# create train, validation, and test splits
+set.seed(123)
+splits <- h2o.splitFrame(df.h2o, ratios = c(.7, .15), destination_frames = c("train","valid","test"))
+names(splits) <- c("train","valid","test")
+
+# variable names for resonse & features
+y <- "Attrition"
+x <- setdiff(names(df), y)
+
+df.h2o
+```
+
+
+
+
+
+```{r}
+# elastic net model 
+glm <- h2o.glm(
+  x = x, 
+  y = y, 
+  training_frame = splits$train,
+  validation_frame = splits$valid,
+  family = "binomial",
+  seed = 123
+  )
+
+# random forest model
+rf <- h2o.randomForest(
+  x = x, 
+  y = y,
+  training_frame = splits$train,
+  validation_frame = splits$valid,
+  ntrees = 1000,
+  stopping_metric = "AUC",    
+  stopping_rounds = 10,         
+  stopping_tolerance = 0.005,
+  seed = 123
+  )
+
+# gradient boosting machine model
+gbm <-  h2o.gbm(
+  x = x, 
+  y = y,
+  training_frame = splits$train,
+  validation_frame = splits$valid,
+  ntrees = 1000,
+  stopping_metric = "AUC",    
+  stopping_rounds = 10,         
+  stopping_tolerance = 0.005,
+  seed = 123
+  )
+```
+
+
+```{r}
+# model performance
+h2o.auc(glm, valid = TRUE)
+h2o.auc(rf, valid = TRUE)
+h2o.auc(gbm, valid = TRUE)
+```
+
+
+
+
+
+```{r}
+# convert feature data to non-h2o objects
+x_valid <- as.data.frame(splits$valid)[, x]
+
+# make response variable numeric binary vector
+y_valid <- as.vector(as.numeric(as.character(splits$valid$Attrition)))
+
+
+h2o.predict(rf, as.h2o(x_valid))
+
+# create custom predict function
+pred <- function(model, newdata)  {
+  results <- as.data.frame(h2o.predict(model, as.h2o(newdata)))
+  return(results[[3L]])
+  }
+```
+
+```{r}
+# elastic net explainer
+explainer_glm <- explain(
+  model = glm,
+  data = x_valid,
+  y = y_valid,
+  predict_function = pred,
+  label = "h2o glm"
+  )
+
+# random forest explainer
+explainer_rf <- explain(
+  model = rf,
+  data = x_valid,
+  y = y_valid,
+  predict_function = pred,
+  label = "h2o rf"
+  )
+
+# GBM explainer
+explainer_gbm <- explain(
+  model = gbm,
+  data = x_valid,
+  y = y_valid,
+  predict_function = pred,
+  label = "h2o gbm"
+  )
+```
+
+
+
+```{r}
+# example of explainer object
+class(explainer_glm)
+summary(explainer_glm)
+```
+
+
+## Residual diagnostics
+
+
+```{r}
+# compute predictions & residuals
+resids_glm <- model_performance(explainer_glm)
+resids_glm
+
+resids_rf  <- model_performance(explainer_rf)
+resids_rf
+
+
+resids_gbm <- model_performance(explainer_gbm)
+resids_gbm
+```
+
+
+
+```{r fig.width=7}
+# create comparison plot of residuals for each model
+p1 <- plot(resids_glm, resids_rf, resids_gbm)
+p2 <- plot(resids_glm, resids_rf, resids_gbm, geom = "boxplot")
+
+gridExtra::grid.arrange(p1, p2, nrow = 1)
+```
+
+
+
+## Variable importance
+
+
+```{r fig.width=7, fig.height=7}
+# compute permutation-based variable importance
+vip_glm <- feature_importance(explainer_glm, loss_function = loss_root_mean_square) 
+vip_rf  <- feature_importance(explainer_rf, loss_function = loss_root_mean_square)
+vip_gbm <- feature_importance(explainer_gbm, loss_function = loss_root_mean_square)
+
+plot(vip_glm, vip_rf, vip_gbm, max_vars = 10)
+```
+
+
+
+## Predictor-response relationship
+
+
+```{r}
+# compute PDP for a given variable --> uses the pdp package
+pdp_glm  <- variable_response(explainer_glm, variable =  "Age", type = "pdp")
+pdp_rf   <- variable_response(explainer_rf,  variable =  "Age", type = "pdp")
+pdp_gbm  <- variable_response(explainer_gbm, variable =  "Age", type = "pdp")
+
+plot(pdp_glm, pdp_rf, pdp_gbm)
+```
+
+
+
+
+
+# DALEX
+
+## Variable-importance Measures
+
+```{r}
+library("DALEX")
+library("randomForest")
+apartments_rf <- archivist::aread("pbiecek/models/fe7a5")
+
+explainer_rf <- DALEX::explain(model = apartments_rf, 
+                               data = apartments_test[,-1], 
+                               y = apartments_test$m2.price, 
+                               label = "Random Forest")
+```
+
+
+```{r}
+predict(apartments_rf, apartments_test)
+
+loss_root_mean_square(observed = apartments_test$m2.price, 
+                      predicted = predict(apartments_rf, apartments_test))
+```
+
+```{r}
+set.seed(1980)
+model_parts(explainer = explainer_rf, 
+        loss_function = loss_root_mean_square,
+                    B = 1)
+```
+
+
+
+```{r}
+set.seed(1980)
+vars <- c("surface","floor","construction.year","no.rooms","district")
+model_parts(explainer = explainer_rf, 
+        loss_function = loss_root_mean_square,
+                    B = 1,
+            variables = vars)
+```
+
+```{r}
+set.seed(1980)
+vip.50 <- model_parts(explainer = explainer_rf, 
+                   loss_function = loss_root_mean_square,
+                               B = 50,
+                            type = "difference")
+vip.50
+```
+
+```{r}
+library("ggplot2")
+plot(vip.50) +
+  ggtitle("Mean variable-importance over 50 permutations", "") 
+```
+
+```{r}
+apartments_lm  <- archivist::aread("pbiecek/models/55f19")
+apartments_svm <- archivist::aread("pbiecek/models/d2ca0")
+
+explainer_lm <- DALEX::explain(model = apartments_lm, 
+                               data = apartments_test[,-1], 
+                               y = apartments_test$m2.price, 
+                               label = "Linear Regression")
+
+library("e1071")
+explainer_svm <- DALEX::explain(model = apartments_svm, 
+                                data = apartments_test[,-1], 
+                                y = apartments_test$m2.price, 
+                                label = "Support Vector Machine")
+```
+
+
+```{r}
+vip_lm  <- model_parts(explainer = explainer_lm,  B = 50, N = NULL)
+vip_rf  <- model_parts(explainer = explainer_rf,  B = 50, N = NULL)
+vip_svm <- model_parts(explainer = explainer_svm, B = 50, N = NULL)
+```
+
+
+
+
+```{r}
+library("randomForest")
+library("dplyr")
+library("DALEX")
+
+titanic_imputed <- archivist::aread("pbiecek/models/27e5c")
+titanic_imputed
+```
+
+
+```{r}
+titanic_rf <- archivist::aread("pbiecek/models/4e0fc")
+
+explain_titanic_rf <- DALEX::explain(model = titanic_rf, 
+                                     data = titanic_imputed[,-9],
+                                     y = titanic_imputed$survived == "yes", 
+                                     label = "Random Forest",
+                                     verbose = FALSE)
+```
+
+
+```{r}
+```
+
+
+
+
+
+
+
+
+
+
+# IML
