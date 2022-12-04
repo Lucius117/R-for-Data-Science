@@ -244,9 +244,12 @@ num_grid_models <- nrow(collect_metrics(grid_results, summarize = FALSE))
 num_grid_models
 ```
 
+more edit
+
 ```{r}
 grid_results
 ```
+
 
 
 ```{r}
@@ -256,9 +259,7 @@ grid_results %>%
    select(model, .config, rmse = mean, rank)
 ```
 
-```{r}
-252 * 50
-```
+
 
 ```{r}
 autoplot(
