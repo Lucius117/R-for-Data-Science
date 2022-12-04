@@ -3098,7 +3098,7 @@ plot(plot_data)[[1]]
 # DALEX and H2O
 
 ```{r}
-data_final = read_rds("../data/data_final.rds")
+data_final = read_rds("data/data_final.rds")
 
 data_final %>% 
   select(subscribed) %>% 
@@ -3119,12 +3119,16 @@ test_tbl  <- train_test_split %>% rsample::testing()
 
 ## Building models with h2o
 
+```{r}
+memuse::Sys.meminfo()
+```
+
 
 ```{r}
-h2o.init()
-h2o.shutdown()
+h2o.init(port = 16755, max_mem_size = "200G")
+h2o.clusterInfo()
 
-memuse::Sys.meminfo()
+h2o.shutdown()
 ```
 
 
@@ -3200,6 +3204,51 @@ gbm_model_grid <- h2o.grid(algorithm = "gbm",
                            search_criteria = search_criteria_all,
                            seed = 1975)
 ```
+
+
+
+
+```{r}
+h2o.connect(port = 16755)
+```
+
+
+```{r}
+# Get the DRM grid results, sorted by AUC 
+drf_grid_perf <- h2o.getGrid(grid_id = "drf_grid",
+                             sort_by = "AUC",
+                             decreasing = TRUE)
+
+# Fetch the top DRF model, chosen by validation AUC
+drf_model <- h2o.getModel(drf_grid_perf@model_ids[[1]])
+
+# Get the GBM grid results, sorted by AUC 
+gbm_grid_perf <- h2o.getGrid(grid_id = "gbm_grid",
+                             sort_by = "AUC",
+                             decreasing = TRUE)
+
+# Fetch the top GBM model, chosen by validation AUC
+gbm_model <- h2o.getModel(gbm_grid_perf@model_ids[[1]])
+```
+
+
+```{r}
+# set path to get around model path being different from project path
+path = "model/"
+
+# Save GLM model
+h2o.saveModel(glm_model, path)
+
+# Save RF model
+h2o.saveModel(drf_model, path)
+
+# Save GBM model
+h2o.saveModel(gbm_model, path)
+```
+
+
+## Performance assessment
+
 
 
 
